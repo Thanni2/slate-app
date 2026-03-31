@@ -15,28 +15,26 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 .nav-links{display:flex;gap:1.5rem;}
 .nav-links a{text-decoration:none;font-size:13px;color:var(--muted);}
 .nav-links a:hover{color:var(--text);}
-.container{max-width:480px;width:100%;margin:auto;padding:2rem;}
-.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2rem;}
+.signup-container{max-width:480px;width:100%;margin:auto;padding:2rem;}
+.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2.5rem;}
 h1{font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:.5rem;}
-.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:1.5rem;}
-.form-group{margin-bottom:1rem;}
+.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:2rem;}
+.form-group{margin-bottom:1.25rem;}
 label{display:block;font-size:13px;font-weight:500;margin-bottom:.5rem;}
 input{width:100%;padding:12px 16px;border:.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);}
 input:focus{outline:none;border-color:var(--accent);}
-.btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
-.btn:hover{opacity:.88;}
-.btn-secondary{background:var(--surface);color:var(--text);border:.5px solid var(--border);margin-top:0;}
+.btn-signup{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
+.btn-signup:hover{opacity:.88;}
+.success-msg{background:#10b981;color:#fff;padding:12px;border-radius:10px;text-align:center;margin-top:1rem;display:none;}
 .error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
 .links{text-align:center;margin-top:1.5rem;}
 .links a{color:var(--muted);text-decoration:none;font-size:13px;}
-.otp-group{display:flex;gap:8px;align-items:center;}
-.otp-group input{flex:1;}
-.otp-group button{padding:12px 16px;background:var(--tag);border:.5px solid var(--border);border-radius:12px;cursor:pointer;font-size:13px;}
-.resend-timer{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;}
-.loading{opacity:0.6;pointer-events:none;}
+.links a:hover{color:var(--accent);}
+.links span{margin:0 8px;}
 footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center;margin-top:auto;}
 .footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.5rem;}
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
+.footer-copy{font-size:11px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -50,208 +48,88 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 </div>
 </nav>
 
-<div class="container">
+<div class="signup-container">
 <div class="card">
 <h1>Create account</h1>
-<p class="subtitle">Verify your email to get started</p>
-
-<div id="stepSignup">
-<div class="form-group"><label>Full name</label><input type="text" id="fullname" placeholder="Mobolaji Adewale"></div>
-<div class="form-group"><label>Email</label><input type="email" id="email" placeholder="hello@example.com"></div>
-<div class="form-group"><label>Password</label><input type="password" id="password" placeholder="Create a password (min 6 chars)"></div>
-<button class="btn" id="sendOtpBtn" onclick="sendOTP()">Continue →</button>
-<div id="step1Error" class="error-msg"></div>
+<p class="subtitle">Start planning your days with clarity</p>
+<form id="signupForm">
+<div class="form-group"><label>Full name</label><input type="text" id="fullname" required placeholder="Mobolaji Adewale"></div>
+<div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="hello@example.com"></div>
+<div class="form-group"><label>Password</label><input type="password" id="password" required placeholder="Create a password"></div>
+<button type="submit" class="btn-signup">Create account →</button>
+<div id="successMsg" class="success-msg"></div>
+<div id="errorMsg" class="error-msg"></div>
+</form>
+<div class="links">
+<a href="login.html">Already have an account? Sign in</a><span>•</span><a href="index.html">← Back to home</a>
+</div>
+</div>
 </div>
 
-<div id="stepOTP" style="display:none;">
-<p style="margin-bottom:1rem;">We've sent a 6-digit code to <strong id="otpEmailDisplay"></strong></p>
-<div class="form-group"><label>Verification Code</label><input type="text" id="otpCode" placeholder="Enter 6-digit code" maxlength="6"></div>
-<div class="otp-group"><button class="btn-secondary" id="resendBtn" onclick="resendOTP()" style="flex:1;">Resend Code</button><button class="btn" id="verifyBtn" onclick="verifyOTP()" style="flex:1;">Verify →</button></div>
-<div id="resendTimer" class="resend-timer"></div>
-<div id="step2Error" class="error-msg"></div>
-</div>
+<footer>
+<div class="footer-links"><a href="index.html">Home</a><a href="login.html">Sign in</a><a href="support.html">Support</a><a href="#">Privacy</a><a href="#">Terms</a></div>
+<div class="footer-copy">© 2026 Slate. All rights reserved.</div>
+</footer>
 
-<div class="links"><a href="login.html">Already have an account? Sign in</a><span>•</span><a href="index.html">← Back to home</a></div>
-</div></div>
-
-<footer><div class="footer-links"><a href="index.html">Home</a><a href="login.html">Sign in</a><a href="support.html">Support</a></div><div class="footer-copy">© 2026 Slate. All rights reserved.</div></footer>
-
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-// EMAILJS CREDENTIALS - UPDATE THESE
-const EMAILJS_PUBLIC_KEY = "SHYsSMG5uOmMQb99a";
-const EMAILJS_SERVICE_ID = "service_icb0z9q";
-const EMAILJS_TEMPLATE_ID = "template_94gg1fk"; // UPDATE THIS IF YOU CREATED A NEW TEMPLATE
-
-emailjs.init(EMAILJS_PUBLIC_KEY);
-
-let pendingUser = null;
-let otpCode = null;
-let otpExpiry = null;
-let resendTimer = null;
-
-function generateOTP() { 
-    return Math.floor(100000 + Math.random() * 900000).toString(); 
-}
-
-async function sendOTPEmail(email, otp, name, action) {
-    const templateParams = {
-        to_email: email,
-        name: name,
-        otp: otp,
-        action: action
-    };
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    console.log("Sending to:", email);
-    console.log("Template params:", templateParams);
-    
-    try {
-        const response = await emailjs.send(
-            EMAILJS_SERVICE_ID, 
-            EMAILJS_TEMPLATE_ID, 
-            templateParams
-        );
-        console.log("Email sent:", response);
-        return true;
-    } catch (error) {
-        console.error("EmailJS Error:", error);
-        console.error("Error details:", error.text);
-        return false;
-    }
-}
-
-async function sendOTP() {
     const name = document.getElementById('fullname').value.trim();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     
-    const errorEl = document.getElementById('step1Error');
-    errorEl.style.display = 'none';
-    
+    // Validation
     if (!name || !email || !password) {
-        errorEl.innerText = 'Please fill in all fields';
-        errorEl.style.display = 'block';
+        document.getElementById('errorMsg').innerText = 'Please fill in all fields';
+        document.getElementById('errorMsg').style.display = 'block';
         return;
     }
+    
     if (password.length < 6) {
-        errorEl.innerText = 'Password must be at least 6 characters';
-        errorEl.style.display = 'block';
+        document.getElementById('errorMsg').innerText = 'Password must be at least 6 characters';
+        document.getElementById('errorMsg').style.display = 'block';
         return;
     }
     
+    // Get existing users
     const users = JSON.parse(localStorage.getItem('slate_users') || '[]');
+    
+    // Check if email already exists
     if (users.some(u => u.email === email)) {
-        errorEl.innerText = 'Email already registered. Please sign in instead.';
-        errorEl.style.display = 'block';
-        setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+        document.getElementById('errorMsg').innerText = 'Email already registered. Please sign in instead.';
+        document.getElementById('errorMsg').style.display = 'block';
+        
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
         return;
     }
     
-    const btn = document.getElementById('sendOtpBtn');
-    btn.innerText = 'Sending...';
-    btn.classList.add('loading');
+    // Create new user
+    const newUser = {
+        name: name,
+        email: email,
+        password: password,
+        joined: new Date().toISOString()
+    };
     
-    pendingUser = { name, email, password };
-    otpCode = generateOTP();
-    otpExpiry = Date.now() + 300000;
-    
-    localStorage.setItem('temp_otp', JSON.stringify({ email, otp: otpCode, expiry: otpExpiry }));
-    
-    const emailSent = await sendOTPEmail(email, otpCode, name.split(' ')[0], 'signup');
-    
-    btn.innerText = 'Continue →';
-    btn.classList.remove('loading');
-    
-    if (emailSent) {
-        document.getElementById('otpEmailDisplay').innerText = email;
-        document.getElementById('stepSignup').style.display = 'none';
-        document.getElementById('stepOTP').style.display = 'block';
-        startResendTimer();
-    } else {
-        errorEl.innerText = 'Failed to send verification email. Please try again.';
-        errorEl.style.display = 'block';
-    }
-}
-
-function verifyOTP() {
-    const enteredCode = document.getElementById('otpCode').value.trim();
-    const stored = JSON.parse(localStorage.getItem('temp_otp') || '{}');
-    const errorEl = document.getElementById('step2Error');
-    errorEl.style.display = 'none';
-    
-    if (!stored.otp || stored.otp !== enteredCode) {
-        errorEl.innerText = 'Invalid verification code';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (Date.now() > stored.expiry) {
-        errorEl.innerText = 'Code expired. Please request a new one.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (stored.email !== pendingUser.email) {
-        errorEl.innerText = 'Email mismatch. Please try again.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    const users = JSON.parse(localStorage.getItem('slate_users') || '[]');
-    users.push({
-        name: pendingUser.name,
-        email: pendingUser.email,
-        password: pendingUser.password,
-        joined: new Date().toISOString(),
-        verified: true
-    });
+    users.push(newUser);
     localStorage.setItem('slate_users', JSON.stringify(users));
-    localStorage.removeItem('temp_otp');
     
-    alert('Account created successfully! Please sign in.');
-    window.location.href = 'login.html';
-}
-
-async function resendOTP() {
-    if (!pendingUser) return;
+    // Show success message
+    document.getElementById('successMsg').innerHTML = '✓ Account created successfully! Redirecting to login...';
+    document.getElementById('successMsg').style.display = 'block';
     
-    const resendBtn = document.getElementById('resendBtn');
-    resendBtn.innerText = 'Sending...';
-    resendBtn.disabled = true;
+    // Clear form
+    document.getElementById('signupForm').reset();
     
-    otpCode = generateOTP();
-    otpExpiry = Date.now() + 300000;
-    localStorage.setItem('temp_otp', JSON.stringify({ email: pendingUser.email, otp: otpCode, expiry: otpExpiry }));
-    
-    const emailSent = await sendOTPEmail(pendingUser.email, otpCode, pendingUser.name.split(' ')[0], 'signup');
-    
-    resendBtn.innerText = 'Resend Code';
-    resendBtn.disabled = false;
-    
-    if (emailSent) {
-        alert(`New code sent to ${pendingUser.email}`);
-        startResendTimer();
-    } else {
-        document.getElementById('step2Error').innerText = 'Failed to send code. Please try again.';
-        document.getElementById('step2Error').style.display = 'block';
-    }
-}
-
-function startResendTimer() {
-    let timeLeft = 60;
-    const timerEl = document.getElementById('resendTimer');
-    const resendBtn = document.getElementById('resendBtn');
-    resendBtn.disabled = true;
-    if (resendTimer) clearInterval(resendTimer);
-    resendTimer = setInterval(() => {
-        if (timeLeft <= 0) {
-            clearInterval(resendTimer);
-            timerEl.innerText = '';
-            resendBtn.disabled = false;
-        } else {
-            timerEl.innerText = `Resend available in ${timeLeft}s`;
-            timeLeft--;
-        }
-    }, 1000);
-}
+    // Redirect to login page after 2 seconds
+    setTimeout(() => {
+        window.location.href = 'login.html';
+    }, 2000);
+});
 </script>
 </body>
 </html>
