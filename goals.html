@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goals — Slate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,.08);--text:#1a1a18;--muted:#9a9890;--accent:#2563eb;--tag:#f0ede6;--danger:#ef4444;}
+[data-theme="dark"]{--bg:#1a1a1a;--surface:#2d2d2d;--border:rgba(255,255,255,.1);--text:#e5e5e5;--muted:#9ca3af;--accent:#3b82f6;--tag:#3a3a3a;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .3s;min-height:100vh;display:flex;flex-direction:column;}
+nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:var(--bg);border-bottom:.5px solid var(--border);flex-wrap:wrap;gap:1rem;}
+.logo{font-family:'DM Serif Display',serif;font-size:24px;text-decoration:none;color:var(--text);}
+.logo em{color:var(--accent);font-style:normal;}
+.nav-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
+.nav-links a{text-decoration:none;font-size:13px;color:var(--muted);font-weight:500;}
+.nav-links a:hover{color:var(--text);}
+.nav-buttons{display:flex;gap:1rem;}
+.nav-cta{padding:8px 20px;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-size:13px;}
+.nav-login{padding:8px 20px;background:var(--surface);border:.5px solid var(--border);border-radius:10px;text-decoration:none;font-size:13px;color:var(--text);}
+.container{max-width:1000px;margin:0 auto;padding:2rem;flex:1;}
+.goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+.goal-header h1{font-family:'DM Serif Display',serif;font-size:32px;}
+.add-goal-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:500;}
+.goals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5rem;}
+.goal-card{background:var(--surface);border-radius:20px;border:.5px solid var(--border);padding:1.5rem;}
+.goal-title{font-size:18px;font-weight:600;margin-bottom:.25rem;}
+.goal-category{font-size:11px;color:var(--muted);margin-bottom:1rem;}
+.progress-bar{background:var(--tag);border-radius:10px;height:10px;overflow:hidden;margin:1rem 0;}
+.progress-fill{background:var(--accent);height:100%;transition:width .3s;}
+.progress-stats{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:1rem;}
+.progress-controls{display:flex;flex-direction:column;gap:12px;margin:1rem 0;}
+.slider-container{display:flex;align-items:center;gap:12px;}
+.slider-container input[type="range"]{flex:1;height:4px;-webkit-appearance:none;background:var(--tag);border-radius:5px;}
+.slider-container input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer;}
+.number-input{display:flex;align-items:center;gap:8px;}
+.number-input input{width:80px;padding:8px;border:.5px solid var(--border);border-radius:8px;text-align:center;font-size:13px;background:var(--surface);color:var(--text);}
+.button-group{display:flex;gap:8px;margin-top:8px;}
+.button-group button{flex:1;padding:8px;border-radius:8px;border:.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;}
+.button-group button.danger{color:var(--danger);}
+.empty-state{text-align:center;padding:4rem;color:var(--muted);}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:1000;}
+.modal.active{display:flex;}
+.modal-content{background:var(--surface);border-radius:24px;padding:2rem;max-width:500px;width:90%;}
+.modal-content input,.modal-content select{width:100%;padding:12px;margin:1rem 0;border:.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);}
+.modal-buttons{display:flex;gap:1rem;margin-top:1rem;}
+.modal-buttons button{flex:1;padding:12px;border-radius:12px;cursor:pointer;}
+.save-btn{background:var(--accent);color:#fff;border:none;}
+.cancel-btn{background:var(--surface);border:.5px solid var(--border);}
+footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
+.footer-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
+.footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
+@media(max-width:680px){.goals-grid{grid-template-columns:1fr;} .container{padding:1rem;}}
+</style>
+</head>
+<body>
+<nav>
+<a href="index.html" class="logo">Sl<em>a</em>te</a>
+<div class="nav-links">
+<a href="index.html">Home</a>
+<a href="dashboard.html">Dashboard</a>
+<a href="support.html">Support</a>
+</div>
+<div class="nav-buttons">
+<a href="login.html" class="nav-login">Sign in</a>
+<a href="signup.html" class="nav-cta">Get started</a>
+</div>
+</nav>
+
+<div class="container">
+<div class="goal-header"><h1>🎯 Your Goals</h1><button class="add-goal-btn" onclick="openModal()">+ New Goal</button></div>
+<div id="goalsGrid" class="goals-grid"></div>
+</div>
+
+<div id="goalModal" class="modal"><div class="modal-content"><h3>Set a New Goal</h3><input type="text" id="goalTitle" placeholder="Goal title"><select id="goalCategory"><option value="Career">Career</option><option value="Health">Health</option><option value="Learning">Learning</option><option value="Personal">Personal</option><option value="Fitness">Fitness</option><option value="Finance">Finance</option></select><input type="number" id="goalTarget" placeholder="Target (e.g., 100)"><div class="modal-buttons"><button class="save-btn" onclick="saveGoal()">Save Goal</button><button class="cancel-btn" onclick="closeModal()">Cancel</button></div></div></div>
+
+<footer>
+<a href="index.html" class="logo" style="font-size:18px">Sl<em>a</em>te</a>
+<div class="footer-links"><a href="index.html">Home</a><a href="login.html">Sign in</a><a href="signup.html">Sign up</a><a href="dashboard.html">Dashboard</a><a href="support.html">Support</a></div>
+<div class="footer-copy">© 2026 Slate. All rights reserved.</div>
+</footer>
+
+<script>
+let goals=[];
+function loadUser(){let u=localStorage.getItem('slate_user');if(!u){document.getElementById('nav-buttons').innerHTML='<a href="login.html" class="nav-login">Sign in</a><a href="signup.html" class="nav-cta">Get started</a>';}else{let name=JSON.parse(u).name.split(' ')[0];document.querySelector('.nav-buttons').innerHTML=`<span style="font-size:13px;color:var(--muted);">${name}</span><a href="dashboard.html" class="nav-cta">Dashboard</a><a href="#" onclick="logout()" class="nav-login">Sign out</a>`;}}
+function logout(){localStorage.removeItem('slate_user');window.location.href='index.html';}
+function loadGoals(){let s=localStorage.getItem('slate_goals');goals=s?JSON.parse(s):[];renderGoals();}
+function saveGoals(){localStorage.setItem('slate_goals',JSON.stringify(goals));}
+function renderGoals(){let grid=document.getElementById('goalsGrid');if(goals.length===0){grid.innerHTML='<div class="empty-state">🎯 No goals yet. Click "New Goal" to start!</div>';return;}grid.innerHTML='';goals.forEach((goal,idx)=>{let progress=(goal.current/goal.target)*100;let card=document.createElement('div');card.className='goal-card';card.innerHTML=`<div class="goal-title">${escapeHtml(goal.title)}</div><div class="goal-category">${goal.category}</div><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div><div class="progress-stats"><span>${goal.current} / ${goal.target}</span><span>${Math.round(progress)}%</span></div><div class="progress-controls"><div class="slider-container"><input type="range" min="0" max="${goal.target}" value="${goal.current}" step="1" oninput="updateProgressFromSlider(${idx}, this.value)"></div><div class="number-input"><input type="number" id="progressInput_${idx}" value="${goal.current}" min="0" max="${goal.target}" step="1" onchange="updateProgressFromNumber(${idx}, this.value)"><span>/ ${goal.target}</span></div><div class="button-group"><button onclick="updateProgress(${idx}, -10)">-10</button><button onclick="updateProgress(${idx}, 10)">+10</button><button class="danger" onclick="deleteGoal(${idx})">Delete</button></div></div>`;grid.appendChild(card);});}
+function updateProgress(idx,delta){let newVal=goals[idx].current+delta;if(newVal<0)newVal=0;if(newVal>goals[idx].target)newVal=goals[idx].target;goals[idx].current=newVal;saveGoals();renderGoals();}
+function updateProgressFromSlider(idx,value){goals[idx].current=parseInt(value);saveGoals();renderGoals();}
+function updateProgressFromNumber(idx,value){let newVal=parseInt(value);if(isNaN(newVal))newVal=0;if(newVal<0)newVal=0;if(newVal>goals[idx].target)newVal=goals[idx].target;goals[idx].current=newVal;saveGoals();renderGoals();}
+function deleteGoal(idx){if(confirm('Delete this goal?')){goals.splice(idx,1);saveGoals();renderGoals();}}
+function openModal(){document.getElementById('goalModal').classList.add('active');document.getElementById('goalTitle').value='';document.getElementById('goalCategory').value='Career';document.getElementById('goalTarget').value='';}
+function closeModal(){document.getElementById('goalModal').classList.remove('active');}
+function saveGoal(){let title=document.getElementById('goalTitle').value.trim();let category=document.getElementById('goalCategory').value;let target=parseInt(document.getElementById('goalTarget').value);if(!title||isNaN(target)||target<=0){alert('Please fill all fields');return;}goals.push({id:Date.now(),title:title,category:category,target:target,current:0});saveGoals();renderGoals();closeModal();}
+function escapeHtml(t){let d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function toggleTheme(){let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('slate_theme',t);}
+function loadTheme(){let s=localStorage.getItem('slate_theme');if(s)document.documentElement.setAttribute('data-theme',s);}
+loadTheme();loadUser();loadGoals();
+window.openModal=openModal;window.closeModal=closeModal;window.saveGoal=saveGoal;window.updateProgress=updateProgress;window.updateProgressFromSlider=updateProgressFromSlider;window.updateProgressFromNumber=updateProgressFromNumber;window.deleteGoal=deleteGoal;window.logout=logout;
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Slate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,.08);--text:#1a1a18;--muted:#9a9890;--accent:#2563eb;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:var(--bg);border-bottom:.5px solid var(--border);}
+.logo{font-family:'DM Serif Display',serif;font-size:24px;text-decoration:none;color:var(--text);}
+.logo em{color:var(--accent);font-style:normal;}
+.nav-links{display:flex;gap:1.5rem;}
+.nav-links a{text-decoration:none;font-size:13px;color:var(--muted);}
+.nav-links a:hover{color:var(--text);}
+.login-container{max-width:480px;width:100%;margin:auto;padding:2rem;}
+.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2.5rem;}
+h1{font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:.5rem;}
+.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:2rem;}
+.form-group{margin-bottom:1.25rem;}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:.5rem;}
+input{width:100%;padding:12px 16px;border:.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);}
+input:focus{outline:none;border-color:var(--accent);}
+.btn-login{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
+.btn-login:hover{opacity:.88;}
+.forgot-link{text-align:right;margin-top:-8px;margin-bottom:12px;}
+.forgot-link a{font-size:12px;color:var(--muted);text-decoration:none;}
+.links{text-align:center;margin-top:1.5rem;}
+.links a{color:var(--muted);text-decoration:none;font-size:13px;}
+.links a:hover{color:var(--accent);}
+.links span{margin:0 8px;}
+.error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface);border-radius:24px;padding:2rem;max-width:450px;width:90%;}
+.modal h3{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:.5rem;}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:1.5rem;}
+.modal input{width:100%;padding:12px;margin-bottom:1rem;}
+.modal-buttons{display:flex;gap:1rem;}
+.modal-buttons button{flex:1;padding:12px;border-radius:12px;cursor:pointer;}
+.modal-cancel{background:var(--surface);border:.5px solid var(--border);}
+.modal-submit{background:var(--accent);color:#fff;border:none;}
+footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center;margin-top:auto;}
+.footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.5rem;}
+.footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
+.footer-copy{font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<nav>
+<a href="index.html" class="logo">Sl<em>a</em>te</a>
+<div class="nav-links">
+<a href="index.html#features">Features</a>
+<a href="index.html#pricing">Pricing</a>
+<a href="support.html">Support</a>
+<a href="signup.html">Sign up</a>
+</div>
+</nav>
+
+<div class="login-container">
+<div class="card">
+<h1>Welcome back</h1>
+<p class="subtitle">Sign in to continue your journey</p>
+<form id="loginForm">
+<div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="hello@example.com"></div>
+<div class="form-group"><label>Password</label><input type="password" id="password" required placeholder="Enter your password"></div>
+<div class="forgot-link"><a href="#" onclick="openForgotModal()">Forgot password?</a></div>
+<button type="submit" class="btn-login">Sign in →</button>
+<div id="errorMsg" class="error-msg"></div>
+</form>
+<div class="links">
+<a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a>
+</div>
+</div>
+</div>
+
+<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetLink()">Send link</button></div></div></div>
+<div id="resetModal" class="modal-overlay"><div class="modal"><h3>Create new password</h3><p>Enter new password for <strong id="resetEmailDisplay"></strong></p><input type="password" id="newPassword" placeholder="New password"><input type="password" id="confirmPassword" placeholder="Confirm password"><div id="resetModalError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeResetModal()">Cancel</button><button class="modal-submit" onclick="updatePassword()">Update</button></div></div></div>
+
+<footer>
+<div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a><a href="#">Privacy</a><a href="#">Terms</a></div>
+<div class="footer-copy">© 2026 Slate. All rights reserved.</div>
+</footer>
+
+<script>
+let pendingResetEmail=null;
+document.getElementById('loginForm').addEventListener('submit',function(e){e.preventDefault();let email=document.getElementById('email').value.trim();let pwd=document.getElementById('password').value;let users=JSON.parse(localStorage.getItem('slate_users')||'[]');let user=users.find(u=>u.email===email&&u.password===pwd);if(user){localStorage.setItem('slate_user',JSON.stringify({name:user.name,email:user.email}));window.location.href='dashboard.html';}else{document.getElementById('errorMsg').innerText='Invalid email or password';document.getElementById('errorMsg').style.display='block';}});
+function openForgotModal(){document.getElementById('forgotModal').classList.add('active');document.getElementById('resetEmail').value='';}
+function closeForgotModal(){document.getElementById('forgotModal').classList.remove('active');}
+function sendResetLink(){let email=document.getElementById('resetEmail').value.trim();let users=JSON.parse(localStorage.getItem('slate_users')||'[]');if(!users.find(u=>u.email===email)){document.getElementById('resetError').innerText='No account found';document.getElementById('resetError').style.display='block';return;}pendingResetEmail=email;closeForgotModal();document.getElementById('resetEmailDisplay').innerText=email;document.getElementById('resetModal').classList.add('active');}
+function closeResetModal(){document.getElementById('resetModal').classList.remove('active');}
+function updatePassword(){let np=document.getElementById('newPassword').value;let cp=document.getElementById('confirmPassword').value;if(!np||np.length<6){document.getElementById('resetModalError').innerText='Password must be at least 6 characters';return;}if(np!==cp){document.getElementById('resetModalError').innerText='Passwords do not match';return;}let users=JSON.parse(localStorage.getItem('slate_users')||'[]');let idx=users.findIndex(u=>u.email===pendingResetEmail);if(idx!==-1){users[idx].password=np;localStorage.setItem('slate_users',JSON.stringify(users));alert('Password reset successful!');closeResetModal();}else{document.getElementById('resetModalError').innerText='Error, try again';}}
+</script>
+</body>
+</html>

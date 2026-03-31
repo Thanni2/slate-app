@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Slate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,.08);--text:#1a1a18;--muted:#9a9890;--accent:#2563eb;--tag:#f0ede6;--danger:#ef4444;--purple:#8b5cf6;--orange:#f97316;--warning:#f59e0b;--success:#10b981;}
+[data-theme="dark"]{--bg:#1a1a1a;--surface:#2d2d2d;--border:rgba(255,255,255,.1);--text:#e5e5e5;--muted:#9ca3af;--accent:#3b82f6;--tag:#3a3a3a;--purple:#a78bfa;--orange:#fb923c;--warning:#fbbf24;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .3s;}
+nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:var(--bg);border-bottom:.5px solid var(--border);flex-wrap:wrap;gap:1rem;}
+.logo{font-family:'DM Serif Display',serif;font-size:24px;text-decoration:none;color:var(--text);}
+.logo em{color:var(--accent);font-style:normal;}
+.user-info{display:flex;gap:1rem;align-items:center;}
+.theme-toggle,.logout-btn{padding:6px 16px;background:var(--tag);border:.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);}
+.container{max-width:1400px;margin:0 auto;padding:2rem;}
+.welcome-banner{background:linear-gradient(135deg,var(--accent),#1e40af);border-radius:20px;padding:2rem;color:#fff;margin-bottom:2rem;}
+.welcome-banner h1{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:.5rem;}
+.tab-bar{display:flex;gap:.5rem;margin-bottom:2rem;border-bottom:1px solid var(--border);padding-bottom:1rem;flex-wrap:wrap;}
+.tab-btn{background:none;border:none;padding:8px 20px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:8px;transition:all .2s;}
+.tab-btn:hover{color:var(--text);background:var(--tag);}
+.tab-btn.active{color:var(--accent);background:var(--tag);}
+.date-nav{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1.5rem;}
+.date-nav button{padding:8px 16px;background:var(--surface);border:.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;}
+.current-date-display{font-family:'DM Serif Display',serif;font-size:20px;font-weight:500;min-width:200px;text-align:center;}
+.dashboard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+.card{background:var(--surface);border-radius:20px;border:.5px solid var(--border);padding:1.5rem;}
+.card h3{font-size:16px;font-weight:600;margin-bottom:1rem;}
+.todo-list{list-style:none;max-height:300px;overflow-y:auto;}
+.todo-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:.5px solid var(--border);}
+.todo-item input{width:18px;height:18px;cursor:pointer;}
+.todo-item label{flex:1;font-size:13px;cursor:pointer;}
+.todo-item.completed label{text-decoration:line-through;color:var(--muted);}
+.delete-todo{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;}
+.delete-todo:hover{color:var(--danger);background:var(--tag);}
+.add-todo{display:flex;gap:8px;margin-top:12px;}
+.add-todo input{flex:1;padding:10px;border:.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);}
+.add-todo button{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;}
+.habit-tracker{display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto;}
+.habit-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--tag);border-radius:12px;}
+.habit-name{flex:1;font-size:13px;}
+.habit-check{width:20px;height:20px;cursor:pointer;margin:0 12px;}
+.delete-habit{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;}
+.delete-habit:hover{color:var(--danger);background:var(--surface);}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.stat-card{text-align:center;padding:1rem;background:var(--tag);border-radius:14px;}
+.stat-number{font-size:32px;font-weight:700;color:var(--accent);}
+.stat-label{font-size:11px;color:var(--muted);margin-top:6px;}
+.streak-badge{text-align:center;padding:12px;background:rgba(37,99,235,.1);border-radius:12px;font-size:13px;margin-top:1rem;}
+.empty-state{text-align:center;padding:2rem;color:var(--muted);}
+.calendar-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+.calendar-nav{display:flex;gap:.5rem;}
+.calendar-nav button{padding:8px 16px;background:var(--surface);border:.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;}
+.current-date{font-family:'DM Serif Display',serif;font-size:24px;}
+.add-event-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;}
+.week-view{background:var(--surface);border-radius:20px;border:.5px solid var(--border);overflow-x:auto;}
+.week-header{display:grid;grid-template-columns:80px repeat(7,1fr);border-bottom:.5px solid var(--border);background:var(--tag);min-width:700px;}
+.week-header-cell{padding:1rem;text-align:center;}
+.week-header-day{font-weight:600;margin-bottom:4px;}
+.week-body{display:flex;flex-direction:column;}
+.week-row{display:grid;grid-template-columns:80px repeat(7,1fr);border-bottom:.5px solid var(--border);min-width:700px;}
+.week-hour{padding:1rem;font-size:11px;color:var(--muted);text-align:right;border-right:.5px solid var(--border);background:var(--tag);}
+.week-cell{min-height:80px;padding:4px;border-right:.5px solid var(--border);cursor:pointer;position:relative;}
+.week-cell:hover{background:var(--tag);}
+.month-view{display:none;background:var(--surface);border-radius:20px;border:.5px solid var(--border);overflow-x:auto;}
+.month-header{display:grid;grid-template-columns:repeat(7,1fr);background:var(--tag);border-bottom:.5px solid var(--border);min-width:600px;}
+.month-header-cell{padding:1rem;text-align:center;font-weight:500;}
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);min-width:600px;}
+.month-day{min-height:100px;padding:8px;border-right:.5px solid var(--border);border-bottom:.5px solid var(--border);cursor:pointer;position:relative;}
+.month-day:hover{background:var(--tag);}
+.month-day.other-month{background:rgba(0,0,0,.02);color:var(--muted);}
+.month-day.today{background:rgba(37,99,235,.1);border:1px solid var(--accent);}
+.day-number{font-size:14px;font-weight:500;margin-bottom:6px;}
+.event-card{background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.event-card.work{background:var(--accent);}
+.event-card.personal{background:var(--purple);}
+.event-card.meeting{background:var(--orange);}
+.event-card.reminder{background:var(--warning);}
+.event-card.deadline{background:var(--danger);}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface);border-radius:24px;padding:2rem;max-width:500px;width:90%;}
+.modal input,.modal select,.modal textarea{width:100%;padding:12px;margin:10px 0;border:.5px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);}
+.modal-buttons{display:flex;gap:1rem;margin-top:1rem;}
+.modal-buttons button{flex:1;padding:12px;border-radius:12px;cursor:pointer;}
+.modal-save{background:var(--accent);color:#fff;border:none;}
+.modal-cancel{background:var(--surface);border:.5px solid var(--border);}
+.reminder-checkbox{display:flex;align-items:center;gap:8px;margin:10px 0;}
+.reminder-checkbox input{width:auto;margin:0;}
+.reminder-time{display:none;}
+.reminder-time.active{display:block;}
+.brain-dump-container{display:flex;flex-direction:column;gap:1.5rem;}
+.dump-input-area{background:var(--surface);border-radius:20px;border:.5px solid var(--border);padding:1.5rem;}
+.dump-input-area textarea{width:100%;padding:12px;border:.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);resize:vertical;margin-bottom:1rem;}
+.dump-actions{display:flex;gap:1rem;justify-content:flex-end;}
+.dump-save{background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;}
+.dump-list{background:var(--surface);border-radius:20px;border:.5px solid var(--border);padding:1.5rem;}
+.dump-item{background:var(--tag);border-radius:12px;padding:1rem;margin-bottom:1rem;}
+.dump-text{font-size:14px;line-height:1.5;margin-bottom:1rem;}
+.dump-meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);}
+.dump-buttons button{background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;}
+.dump-convert{color:var(--accent);}
+.dump-delete{color:var(--danger);}
+.share-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:2000;}
+.share-modal-overlay.active{display:flex;}
+.share-card{background:var(--surface);border-radius:28px;padding:2rem;max-width:600px;width:90%;}
+.share-card-preview{background:#fff;border-radius:24px;padding:2rem;margin-bottom:1.5rem;text-align:center;}
+.share-card-text{font-family:'DM Serif Display',serif;font-size:20px;line-height:1.4;margin-bottom:1rem;}
+.share-card-meta{font-size:12px;color:#666;margin-top:1rem;}
+.color-controls{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.color-option{width:40px;height:40px;border-radius:12px;cursor:pointer;border:2px solid transparent;}
+.color-option.selected{border-color:var(--accent);}
+.color-option.white{background:#ffffff;}
+.color-option.beige{background:#f5f0e8;}
+.color-option.blue{background:#2563eb;}
+.color-option.dark{background:#1a1a18;}
+.text-color-controls{display:flex;gap:1rem;margin-bottom:1.5rem;}
+.text-color-btn{padding:8px 16px;border-radius:8px;cursor:pointer;background:var(--tag);border:none;}
+.download-btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:500;}
+@media(max-width:900px){.dashboard-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav>
+<a href="dashboard.html" class="logo">Sl<em>a</em>te</a>
+<div class="user-info">
+<span class="user-name" id="userNameDisplay">User</span>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+<button class="logout-btn" onclick="logout()">Sign out</button>
+</div>
+</nav>
+<div class="container">
+<div class="welcome-banner"><h1 id="welcomeMessage">Welcome to Slate ✨</h1><p id="bannerSub">Track tasks, build habits, and stay productive.</p></div>
+
+<div class="tab-bar">
+<button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+<button class="tab-btn" onclick="switchTab('calendar')">Calendar</button>
+<button class="tab-btn" onclick="switchTab('braindump')">Brain Dump</button>
+<button class="tab-btn" onclick="window.location.href='goals.html'">Goals</button>
+<button class="tab-btn" onclick="window.location.href='support.html'">Support</button>
+</div>
+
+<div id="dashboardTab">
+<div class="date-nav">
+<button onclick="changeDate(-1)">← Previous Day</button>
+<div class="current-date-display" id="dashboardDateDisplay"></div>
+<button onclick="changeDate(1)">Next Day →</button>
+<button onclick="goToTodayDashboard()">Today</button>
+</div>
+<div class="dashboard-grid">
+<div class="card"><h3>📋 <span id="tasksHeader">Today's Tasks</span></h3><ul class="todo-list" id="todoList"></ul><div class="add-todo"><input type="text" id="newTodoInput" placeholder="Add a task..." onkeypress="if(event.key==='Enter') addTodo()"><button onclick="addTodo()">Add</button></div></div>
+<div class="card"><h3>✅ <span id="habitsHeader">Today's Habits</span></h3><div class="habit-tracker" id="habitTracker"></div><div class="add-todo" style="margin-top:12px;"><input type="text" id="newHabitInput" placeholder="Add a habit..." onkeypress="if(event.key==='Enter') addHabit()"><button onclick="addHabit()">Add</button></div></div>
+<div class="card"><h3>📊 Your Progress</h3><div class="stats-grid"><div class="stat-card"><div class="stat-number" id="tasksCompleted">0</div><div class="stat-label">Tasks Done</div></div><div class="stat-card"><div class="stat-number" id="habitsCompleted">0</div><div class="stat-label">Habits</div></div><div class="stat-card"><div class="stat-number" id="completionRate">0%</div><div class="stat-label">Completion</div></div><div class="stat-card"><div class="stat-number" id="streakCount">0</div><div class="stat-label">Day Streak</div></div></div><div class="streak-badge" id="streakMessage"></div><div style="display:flex;gap:1rem;margin-top:1rem;"><button class="theme-toggle" style="flex:1;" onclick="resetDaily()">Reset Today</button><button class="theme-toggle" style="flex:1;" onclick="openShareModal()">✨ Share Progress</button></div></div>
+</div></div>
+
+<div id="calendarTab" style="display:none;">
+<div class="calendar-controls"><div class="calendar-nav"><button onclick="previousPeriod()">← Prev</button><button onclick="nextPeriod()">Next →</button><button onclick="goToToday()">Today</button></div><div class="current-date" id="currentDateDisplay"></div><button class="add-event-btn" onclick="openAddEventModal()">+ Add Event</button></div>
+<div id="weekView" class="week-view"><div class="week-header" id="weekHeader"></div><div class="week-body" id="weekBody"></div></div>
+<div id="monthView" class="month-view"><div class="month-header" id="monthHeader"></div><div class="month-grid" id="monthGrid"></div></div>
+</div>
+
+<div id="braindumpTab" style="display:none;">
+<div class="brain-dump-container">
+<div class="dump-input-area"><textarea id="dumpText" rows="4" placeholder="Write down anything on your mind... ideas, thoughts, reminders, random notes..."></textarea><div class="dump-actions"><button class="dump-save" onclick="saveBrainDump()">💾 Save to Brain Dump</button></div></div>
+<div class="dump-list"><h3>📝 Your Brain Dumps</h3><div id="dumpList"></div></div>
+</div></div></div>
+
+<div id="eventModal" class="modal-overlay"><div class="modal"><h3 id="modalTitle">Add Event</h3><input type="text" id="eventTitle" placeholder="Event title"><select id="eventType"><option value="work">💼 Work</option><option value="personal">🏠 Personal</option><option value="meeting">👥 Meeting</option><option value="reminder">⏰ Reminder</option><option value="deadline">📅 Deadline</option></select><input type="datetime-local" id="eventStart"><input type="datetime-local" id="eventEnd"><textarea id="eventDescription" rows="3" placeholder="Description"></textarea><div class="reminder-checkbox"><input type="checkbox" id="enableReminder"><label>📧 Send email reminder</label></div><div id="reminderTimeDiv" class="reminder-time"><select id="reminderMinutes"><option value="5">5 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeEventModal()">Cancel</button><button class="modal-save" onclick="saveEvent()">Save</button></div></div></div>
+
+<div id="shareModal" class="share-modal-overlay"><div class="share-card"><h3 style="margin-bottom:1rem;">Share Your Progress</h3><div id="shareCardPreview" class="share-card-preview" style="background:#ffffff;color:#1a1a18;"><div class="share-card-text">✨ I completed <span id="shareTasks">0</span> tasks and <span id="shareHabits">0</span> habits today!<br>🔥 <span id="shareStreak">0</span> day streak on Slate</div><div class="share-card-meta">Slate — A clean slate, every single day</div></div><div class="color-controls"><p style="width:100%;margin-bottom:8px;">Background:</p><div class="color-option white" onclick="setCardColor('#ffffff','#1a1a18')"></div><div class="color-option beige" onclick="setCardColor('#f5f0e8','#1a1a18')"></div><div class="color-option blue" onclick="setCardColor('#2563eb','#ffffff')"></div><div class="color-option dark" onclick="setCardColor('#1a1a18','#ffffff')"></div></div><div class="text-color-controls"><p style="width:100%;margin-bottom:8px;">Text Color:</p><button class="text-color-btn" onclick="setCardTextColor('#1a1a18')">Dark</button><button class="text-color-btn" onclick="setCardTextColor('#ffffff')">Light</button></div><button class="download-btn" onclick="downloadShareCard()">📸 Download as Image</button><button class="download-btn" style="margin-top:8px;background:var(--surface);color:var(--text);border:.5px solid var(--border);" onclick="closeShareModal()">Close</button></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const EMAILJS_PUBLIC_KEY = "SHYsSMG5uOmMQb99a";
+const EMAILJS_SERVICE_ID = "service_icb0z9q";
+const EMAILJS_TEMPLATE_ID = "template_8dv6ytq";
+
+let currentUser = null, currentDisplayDate = new Date(), currentViewDate = new Date(), currentView = 'week', editingEventId = null, reminderCheckInterval = null;
+let allTodos = {}, allHabits = {}, allBrainDumps = {}, events = [], activities = [];
+let currentCardBg = "#ffffff", currentCardTextColor = "#1a1a18";
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+function getDateKey(d){ return d.toISOString().split('T')[0]; }
+function getCurrentDateKey(){ return getDateKey(currentDisplayDate); }
+function loadDataForDate(k){ let t=localStorage.getItem(`slate_todos_${k}`); allTodos[k]=t?JSON.parse(t):[]; let h=localStorage.getItem(`slate_habits_${k}`); allHabits[k]=h?JSON.parse(h):[]; let b=localStorage.getItem(`slate_dumps_${k}`); allBrainDumps[k]=b?JSON.parse(b):[]; }
+function saveCurrentData(){ let k=getCurrentDateKey(); localStorage.setItem(`slate_todos_${k}`,JSON.stringify(allTodos[k]||[])); localStorage.setItem(`slate_habits_${k}`,JSON.stringify(allHabits[k]||[])); localStorage.setItem(`slate_dumps_${k}`,JSON.stringify(allBrainDumps[k]||[])); }
+function getCurrentTodos(){ let k=getCurrentDateKey(); if(!allTodos[k])allTodos[k]=[]; return allTodos[k]; }
+function getCurrentHabits(){ let k=getCurrentDateKey(); if(!allHabits[k])allHabits[k]=[]; return allHabits[k]; }
+function getCurrentDumps(){ let k=getCurrentDateKey(); if(!allBrainDumps[k])allBrainDumps[k]=[]; return allBrainDumps[k]; }
+
+function loadUser(){ let u=localStorage.getItem('slate_user'); if(!u){window.location.href='login.html';return;} currentUser=JSON.parse(u); document.getElementById('userNameDisplay').innerText=currentUser.name.split(' ')[0]; document.getElementById('welcomeMessage').innerHTML=`Welcome to Slate, ${currentUser.name.split(' ')[0]} ✨`; }
+function logout(){ localStorage.removeItem('slate_user'); window.location.href='login.html'; }
+function changeDate(d){ currentDisplayDate.setDate(currentDisplayDate.getDate()+d); updateDashboardDateDisplay(); loadDataForDate(getCurrentDateKey()); renderTodos(); renderHabits(); renderBrainDumps(); updateStats(); }
+function goToTodayDashboard(){ currentDisplayDate=new Date(); updateDashboardDateDisplay(); loadDataForDate(getCurrentDateKey()); renderTodos(); renderHabits(); renderBrainDumps(); updateStats(); }
+function updateDashboardDateDisplay(){ let el=document.getElementById('dashboardDateDisplay'); let isToday=currentDisplayDate.toDateString()===new Date().toDateString(); el.innerText=isToday?"Today":currentDisplayDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); document.getElementById('tasksHeader').innerText=isToday?"Today's Tasks":"Tasks for "+currentDisplayDate.toLocaleDateString('en-US',{month:'short',day:'numeric'}); document.getElementById('habitsHeader').innerText=isToday?"Today's Habits":"Habits for "+currentDisplayDate.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function switchTab(t){ document.getElementById('dashboardTab').style.display=t==='dashboard'?'block':'none'; document.getElementById('calendarTab').style.display=t==='calendar'?'block':'none'; document.getElementById('braindumpTab').style.display=t==='braindump'?'block':'none'; let ms={dashboard:'Track tasks, build habits, and stay productive.',calendar:'Plan your week with events and reminders.',braindump:'Capture ideas, thoughts, and random notes.'}; document.getElementById('bannerSub').innerText=ms[t]; if(t==='calendar')renderCalendar(); if(t==='braindump')renderBrainDumps(); let btns=document.querySelectorAll('.tab-btn'); btns.forEach((b,i)=>{b.classList.remove('active'); if(t==='dashboard'&&i===0)b.classList.add('active'); if(t==='calendar'&&i===1)b.classList.add('active'); if(t==='braindump'&&i===2)b.classList.add('active');}); }
+function renderTodos(){ let list=document.getElementById('todoList'); let todos=getCurrentTodos(); if(todos.length===0){list.innerHTML='<div class="empty-state">📝 No tasks yet. Add one above!</div>';return;} list.innerHTML=''; todos.forEach(t=>{let li=document.createElement('li');li.className=`todo-item ${t.completed?'completed':''}`;li.innerHTML=`<input type="checkbox" ${t.completed?'checked':''} onclick="toggleTodo(${t.id})"><label onclick="toggleTodo(${t.id})">${escapeHtml(t.text)}</label><button class="delete-todo" onclick="deleteTodo(${t.id})">✕</button>`;list.appendChild(li);}); }
+function addTodo(){ let i=document.getElementById('newTodoInput'), t=i.value.trim(); if(!t)return; getCurrentTodos().unshift({id:Date.now(),text:t,completed:false}); saveCurrentData(); renderTodos(); i.value=''; updateStats(); }
+function toggleTodo(id){ let t=getCurrentTodos().find(t=>t.id===id); if(t){t.completed=!t.completed; saveCurrentData(); renderTodos(); updateStats();} }
+function deleteTodo(id){ let t=getCurrentTodos().find(t=>t.id===id); if(t&&confirm(`Delete "${t.text}"?`)){ allTodos[getCurrentDateKey()]=getCurrentTodos().filter(t=>t.id!==id); saveCurrentData(); renderTodos(); updateStats();} }
+function renderHabits(){ let tracker=document.getElementById('habitTracker'); let habits=getCurrentHabits(); if(habits.length===0){tracker.innerHTML='<div class="empty-state">✅ No habits yet. Add one below!</div>';return;} tracker.innerHTML=''; habits.forEach(h=>{let div=document.createElement('div');div.className='habit-item';div.innerHTML=`<span class="habit-name">${escapeHtml(h.name)}</span><input type="checkbox" class="habit-check" ${h.completed?'checked':''} onchange="toggleHabit(${h.id})"><button class="delete-habit" onclick="deleteHabit(${h.id})">✕</button>`;tracker.appendChild(div);}); }
+function addHabit(){ let i=document.getElementById('newHabitInput'), n=i.value.trim(); if(!n)return; getCurrentHabits().push({id:Date.now(),name:n,completed:false}); saveCurrentData(); renderHabits(); i.value=''; updateStats(); }
+function toggleHabit(id){ let h=getCurrentHabits().find(h=>h.id===id); if(h){h.completed=!h.completed; saveCurrentData(); renderHabits(); updateStats();} }
+function deleteHabit(id){ let h=getCurrentHabits().find(h=>h.id===id); if(h&&confirm(`Delete "${h.name}"?`)){ allHabits[getCurrentDateKey()]=getCurrentHabits().filter(h=>h.id!==id); saveCurrentData(); renderHabits(); updateStats();} }
+function renderBrainDumps(){ let c=document.getElementById('dumpList'); let d=getCurrentDumps(); if(d.length===0){c.innerHTML='<div class="empty-state">💭 No brain dumps yet. Write something above!</div>';return;} c.innerHTML=''; d.slice().reverse().forEach(d=>{let div=document.createElement('div');div.className='dump-item';div.innerHTML=`<div class="dump-text">${escapeHtml(d.text)}</div><div class="dump-meta"><span>${new Date(d.timestamp).toLocaleTimeString()}</span><div class="dump-buttons"><button class="dump-convert" onclick="convertToTask(${d.id})">📋 Convert to Task</button><button class="dump-delete" onclick="deleteBrainDump(${d.id})">🗑️ Delete</button></div></div>`;c.appendChild(div);}); }
+function saveBrainDump(){ let t=document.getElementById('dumpText').value.trim(); if(!t)return; getCurrentDumps().push({id:Date.now(),text:t,timestamp:new Date().toISOString()}); saveCurrentData(); renderBrainDumps(); document.getElementById('dumpText').value=''; }
+function deleteBrainDump(id){ allBrainDumps[getCurrentDateKey()]=getCurrentDumps().filter(d=>d.id!==id); saveCurrentData(); renderBrainDumps(); }
+function convertToTask(id){ let d=getCurrentDumps().find(d=>d.id===id); if(d){ getCurrentTodos().unshift({id:Date.now(),text:d.text,completed:false}); saveCurrentData(); renderTodos(); deleteBrainDump(id); alert('Converted to task!'); } }
+function calculateStreak(){ let h=JSON.parse(localStorage.getItem('slate_streak_history')||'{}'); let t=new Date(); t.setHours(0,0,0,0); let k=getDateKey(t); let c=(allTodos[k]||[]).filter(t=>t.completed).length+(allHabits[k]||[]).filter(h=>h.completed).length; h[k]=c>0; localStorage.setItem('slate_streak_history',JSON.stringify(h)); let s=0,d=new Date(t); while(true){ let key=getDateKey(d); if(h[key]===true){s++; d.setDate(d.getDate()-1);}else break;} return s; }
+function updateStats(){ let ct=getCurrentTodos().filter(t=>t.completed).length; let ch=getCurrentHabits().filter(h=>h.completed).length; let total=getCurrentTodos().length+getCurrentHabits().length; let rate=total===0?0:Math.round(((ct+ch)/total)*100); let streak=calculateStreak(); document.getElementById('tasksCompleted').innerText=ct; document.getElementById('habitsCompleted').innerText=ch; document.getElementById('completionRate').innerText=rate+'%'; document.getElementById('streakCount').innerText=streak; let msg=document.getElementById('streakMessage'); if(streak===0)msg.innerHTML='🌱 Complete tasks or habits to start your streak!'; else if(streak===1)msg.innerHTML=`🔥 ${streak} day streak! Keep it going tomorrow!`; else if(streak<7)msg.innerHTML=`🔥 ${streak} day streak! You\'re building momentum!`; else msg.innerHTML=`🏆 ${streak} day streak! Amazing consistency!`; }
+function resetDaily(){ if(confirm('Reset all tasks and habits for this day?')){ allTodos[getCurrentDateKey()]=[]; allHabits[getCurrentDateKey()]=[]; saveCurrentData(); renderTodos(); renderHabits(); updateStats(); alert('Reset complete!'); } }
+function openShareModal(){ let ct=getCurrentTodos().filter(t=>t.completed).length; let ch=getCurrentHabits().filter(h=>h.completed).length; let streak=calculateStreak(); document.getElementById('shareTasks').innerText=ct; document.getElementById('shareHabits').innerText=ch; document.getElementById('shareStreak').innerText=streak; document.getElementById('shareModal').classList.add('active'); }
+function closeShareModal(){ document.getElementById('shareModal').classList.remove('active'); }
+function setCardColor(bg,tc){ currentCardBg=bg; currentCardTextColor=tc; let p=document.getElementById('shareCardPreview'); p.style.backgroundColor=bg; p.style.color=tc; }
+function setCardTextColor(c){ currentCardTextColor=c; document.getElementById('shareCardPreview').style.color=c; }
+function downloadShareCard(){ html2canvas(document.getElementById('shareCardPreview'),{scale:2,backgroundColor:currentCardBg}).then(c=>{let a=document.createElement('a');a.download='slate_progress.png';a.href=c.toDataURL();a.click();}); }
+function loadEvents(){ let s=localStorage.getItem('slate_events'); events=s?JSON.parse(s):[]; if(events.length===0){let t=new Date();events.push({id:Date.now(),title:'Team Meeting',type:'meeting',start:new Date(t.getFullYear(),t.getMonth(),t.getDate(),14,0).toISOString(),end:new Date(t.getFullYear(),t.getMonth(),t.getDate(),15,0).toISOString(),description:'',reminder:null});saveEvents();}renderCalendar();startReminderChecker(); }
+function saveEvents(){ localStorage.setItem('slate_events',JSON.stringify(events)); }
+function renderCalendar(){ if(currentView==='week')renderWeekView(); else renderMonthView(); updateDateDisplay(); }
+function renderWeekView(){ let start=new Date(currentViewDate); start.setDate(currentViewDate.getDate()-currentViewDate.getDay()); let header=document.getElementById('weekHeader'); header.innerHTML='<div class="week-header-cell"></div>'; for(let i=0;i<7;i++){let day=new Date(start);day.setDate(start.getDate()+i);let isToday=day.toDateString()===new Date().toDateString();header.innerHTML+=`<div class="week-header-cell"><div class="week-header-day">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]}</div><div style="font-size:20px;font-weight:600;${isToday?'color:var(--accent);':''}">${day.getDate()}</div></div>`;} let body=document.getElementById('weekBody'); body.innerHTML=''; for(let hour=0;hour<24;hour++){let row=document.createElement('div');row.className='week-row';row.innerHTML=`<div class="week-hour">${hour.toString().padStart(2,'0')}:00</div>`; for(let i=0;i<7;i++){let day=new Date(start);day.setDate(start.getDate()+i);day.setHours(hour,0,0);let cell=document.createElement('div');cell.className='week-cell';cell.onclick=()=>openAddEventModal(day); let dayEvents=events.filter(e=>{let d=new Date(e.start);return d.toDateString()===day.toDateString()&&d.getHours()===hour;}); dayEvents.forEach(e=>{let ev=document.createElement('div');ev.className=`event-card ${e.type}`;ev.textContent=e.title;ev.onclick=(evt)=>{evt.stopPropagation();openEditEventModal(e);};cell.appendChild(ev);}); row.appendChild(cell);} body.appendChild(row);} }
+function renderMonthView(){ let y=currentViewDate.getFullYear(),m=currentViewDate.getMonth(); let fd=new Date(y,m,1),sd=fd.getDay(),dim=new Date(y,m+1,0).getDate(),pd=new Date(y,m,0).getDate(); let header=document.getElementById('monthHeader'); header.innerHTML=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="month-header-cell">${d}</div>`).join(''); let grid=document.getElementById('monthGrid'); grid.innerHTML=''; for(let i=0;i<42;i++){let dn=i-sd+1,isCur=dn>0&&dn<=dim,dis=isCur?dn:(dn<=0?pd+dn:dn-dim);let dayDiv=document.createElement('div');dayDiv.className=`month-day ${!isCur?'other-month':''}`; let today=new Date(); if(isCur&&dn===today.getDate()&&m===today.getMonth()&&y===today.getFullYear())dayDiv.classList.add('today'); dayDiv.onclick=()=>{if(isCur)openAddEventModal(new Date(y,m,dn));}; dayDiv.innerHTML=`<div class="day-number">${dis}</div>`; if(isCur){let dayEvents=events.filter(e=>{let d=new Date(e.start);return d.getDate()===dn&&d.getMonth()===m&&d.getFullYear()===y;}); dayEvents.slice(0,2).forEach(e=>{let ev=document.createElement('div');ev.className=`event-card ${e.type}`;ev.textContent=e.title.length>15?e.title.slice(0,12)+'...':e.title;ev.onclick=(evt)=>{evt.stopPropagation();openEditEventModal(e);};dayDiv.appendChild(ev);}); if(dayEvents.length>2){let more=document.createElement('div');more.className='event-card';more.style.background='var(--muted)';more.textContent=`+${dayEvents.length-2} more`;more.onclick=(evt)=>{evt.stopPropagation();alert(dayEvents.map(e=>`• ${e.title}`).join('\n'));};dayDiv.appendChild(more);}} grid.appendChild(dayDiv);} }
+function previousPeriod(){ if(currentView==='week')currentViewDate.setDate(currentViewDate.getDate()-7); else currentViewDate.setMonth(currentViewDate.getMonth()-1); renderCalendar(); }
+function nextPeriod(){ if(currentView==='week')currentViewDate.setDate(currentViewDate.getDate()+7); else currentViewDate.setMonth(currentViewDate.getMonth()+1); renderCalendar(); }
+function goToToday(){ currentViewDate=new Date(); renderCalendar(); }
+function updateDateDisplay(){ let el=document.getElementById('currentDateDisplay'); if(currentView==='week'){let s=new Date(currentViewDate);s.setDate(currentViewDate.getDate()-currentViewDate.getDay());let e=new Date(s);e.setDate(s.getDate()+6);el.innerText=`${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} - ${e.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;}else el.innerText=currentViewDate.toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+function openAddEventModal(date=null){ editingEventId=null; document.getElementById('modalTitle').innerText='Add Event'; document.getElementById('eventTitle').value=''; document.getElementById('eventType').value='work'; document.getElementById('eventDescription').value=''; document.getElementById('enableReminder').checked=false; document.getElementById('reminderTimeDiv').classList.remove('active'); let now=new Date(); now.setMinutes(0); let later=new Date(now); later.setHours(now.getHours()+1); document.getElementById('eventStart').value=now.toISOString().slice(0,16); document.getElementById('eventEnd').value=later.toISOString().slice(0,16); document.getElementById('eventModal').classList.add('active'); }
+function openEditEventModal(e){ editingEventId=e.id; document.getElementById('modalTitle').innerText='Edit Event'; document.getElementById('eventTitle').value=e.title; document.getElementById('eventType').value=e.type; document.getElementById('eventDescription').value=e.description||''; document.getElementById('eventStart').value=e.start.slice(0,16); document.getElementById('eventEnd').value=e.end.slice(0,16); if(e.reminder){document.getElementById('enableReminder').checked=true;document.getElementById('reminderTimeDiv').classList.add('active');document.getElementById('reminderMinutes').value=e.reminder.minutes;}else{document.getElementById('enableReminder').checked=false;document.getElementById('reminderTimeDiv').classList.remove('active');} document.getElementById('eventModal').classList.add('active'); }
+function closeEventModal(){ document.getElementById('eventModal').classList.remove('active'); editingEventId=null; }
+function saveEvent(){ let title=document.getElementById('eventTitle').value.trim(); if(!title){alert('Enter event title');return;} let reminder=null; if(document.getElementById('enableReminder').checked){reminder={minutes:parseInt(document.getElementById('reminderMinutes').value),sent:false};} let data={id:editingEventId||Date.now(),title:title,type:document.getElementById('eventType').value,start:document.getElementById('eventStart').value,end:document.getElementById('eventEnd').value,description:document.getElementById('eventDescription').value,reminder:reminder}; if(editingEventId){let idx=events.findIndex(e=>e.id===editingEventId);if(idx!==-1)events[idx]=data;}else events.push(data); saveEvents(); closeEventModal(); renderCalendar(); }
+function startReminderChecker(){ if(reminderCheckInterval)clearInterval(reminderCheckInterval); reminderCheckInterval=setInterval(checkReminders,60000); }
+async function checkReminders(){ if(!currentUser)return; let now=new Date(); for(let e of events){ if(e.reminder && !e.reminder.sent){ let eventTime=new Date(e.start); let reminderTime=new Date(eventTime.getTime()-(e.reminder.minutes*60000)); if(now>=reminderTime && now<eventTime){ await sendEmailReminder(e,currentUser.email); e.reminder.sent=true; saveEvents(); } } } }
+async function sendEmailReminder(event,userEmail){ let eventDate=new Date(event.start); let params={to_email:userEmail,event_title:event.title,event_date:eventDate.toLocaleDateString(),event_time:eventDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),event_description:event.description||'No description'}; try{ await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,params); console.log('Reminder sent to:',userEmail); } catch(e){ console.error('Failed to send reminder:',e); } }
+document.getElementById('enableReminder').addEventListener('change',function(){ if(this.checked)document.getElementById('reminderTimeDiv').classList.add('active'); else document.getElementById('reminderTimeDiv').classList.remove('active'); });
+function escapeHtml(t){ let d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function toggleTheme(){ let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); localStorage.setItem('slate_theme',t); document.getElementById('themeToggle').innerHTML=t==='dark'?'☀️ Light':'🌙 Dark'; }
+function loadTheme(){ let s=localStorage.getItem('slate_theme'); if(s)document.documentElement.setAttribute('data-theme',s); document.getElementById('themeToggle').innerHTML=(s==='dark'?'☀️ Light':'🌙 Dark'); }
+function init(){ loadTheme(); loadUser(); loadDataForDate(getCurrentDateKey()); loadEvents(); renderTodos(); renderHabits(); renderBrainDumps(); updateStats(); updateDashboardDateDisplay(); switchTab('dashboard'); }
+init();
+window.switchTab=switchTab; window.changeDate=changeDate; window.goToTodayDashboard=goToTodayDashboard; window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.deleteTodo=deleteTodo; window.addHabit=addHabit; window.toggleHabit=toggleHabit; window.deleteHabit=deleteHabit; window.saveBrainDump=saveBrainDump; window.deleteBrainDump=deleteBrainDump; window.convertToTask=convertToTask; window.resetDaily=resetDaily; window.openShareModal=openShareModal; window.closeShareModal=closeShareModal; window.setCardColor=setCardColor; window.setCardTextColor=setCardTextColor; window.downloadShareCard=downloadShareCard; window.logout=logout; window.toggleTheme=toggleTheme; window.previousPeriod=previousPeriod; window.nextPeriod=nextPeriod; window.goToToday=goToToday; window.openAddEventModal=openAddEventModal; window.closeEventModal=closeEventModal; window.saveEvent=saveEvent;
+</script>
+</body>
+</html>
