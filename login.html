@@ -14,30 +14,38 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 .logo em{color:var(--accent);font-style:normal;}
 .nav-links{display:flex;gap:1.5rem;}
 .nav-links a{text-decoration:none;font-size:13px;color:var(--muted);}
-.container{max-width:480px;width:100%;margin:auto;padding:2rem;}
-.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2rem;}
+.nav-links a:hover{color:var(--text);}
+.login-container{max-width:480px;width:100%;margin:auto;padding:2rem;}
+.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2.5rem;}
 h1{font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:.5rem;}
-.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:1.5rem;}
-.form-group{margin-bottom:1rem;}
+.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:2rem;}
+.form-group{margin-bottom:1.25rem;}
 label{display:block;font-size:13px;font-weight:500;margin-bottom:.5rem;}
 input{width:100%;padding:12px 16px;border:.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);}
 input:focus{outline:none;border-color:var(--accent);}
-.btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
-.btn:hover{opacity:.88;}
-.btn-secondary{background:var(--surface);color:var(--text);border:.5px solid var(--border);}
+.btn-login{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
+.btn-login:hover{opacity:.88;}
 .forgot-link{text-align:right;margin-top:-8px;margin-bottom:12px;}
 .forgot-link a{font-size:12px;color:var(--muted);text-decoration:none;}
-.error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
 .links{text-align:center;margin-top:1.5rem;}
 .links a{color:var(--muted);text-decoration:none;font-size:13px;}
-.otp-group{display:flex;gap:8px;align-items:center;}
-.otp-group input{flex:1;}
-.otp-group button{padding:12px 16px;background:var(--tag);border:.5px solid var(--border);border-radius:12px;cursor:pointer;}
-.resend-timer{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;}
-.loading{opacity:0.6;pointer-events:none;}
+.links a:hover{color:var(--accent);}
+.links span{margin:0 8px;}
+.error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface);border-radius:24px;padding:2rem;max-width:450px;width:90%;}
+.modal h3{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:.5rem;}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:1.5rem;}
+.modal input{width:100%;padding:12px;margin-bottom:1rem;}
+.modal-buttons{display:flex;gap:1rem;}
+.modal-buttons button{flex:1;padding:12px;border-radius:12px;cursor:pointer;}
+.modal-cancel{background:var(--surface);border:.5px solid var(--border);}
+.modal-submit{background:var(--accent);color:#fff;border:none;}
 footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center;margin-top:auto;}
 .footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.5rem;}
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
+.footer-copy{font-size:11px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -51,262 +59,39 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 </div>
 </nav>
 
-<div class="container">
+<div class="login-container">
 <div class="card">
 <h1>Welcome back</h1>
 <p class="subtitle">Sign in to continue your journey</p>
-
-<!-- Step 1: Login Form -->
-<div id="stepLogin">
-<div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="hello@example.com"></div>
-<div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
-<div class="forgot-link"><a href="#" onclick="showForgotStep()">Forgot password?</a></div>
-<button class="btn" id="loginBtn" onclick="login()">Sign in →</button>
-<div id="loginError" class="error-msg"></div>
+<form id="loginForm">
+<div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="hello@example.com"></div>
+<div class="form-group"><label>Password</label><input type="password" id="password" required placeholder="Enter your password"></div>
+<div class="forgot-link"><a href="#" onclick="openForgotModal()">Forgot password?</a></div>
+<button type="submit" class="btn-login">Sign in →</button>
+<div id="errorMsg" class="error-msg"></div>
+</form>
+<div class="links">
+<a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a>
+</div>
+</div>
 </div>
 
-<!-- Step 2: Forgot Password - Email Input -->
-<div id="stepForgot" style="display:none;">
-<p style="margin-bottom:1rem;">Enter your email to receive a verification code.</p>
-<div class="form-group"><label>Email</label><input type="email" id="forgotEmail" placeholder="hello@example.com"></div>
-<button class="btn" id="sendCodeBtn" onclick="sendResetOTP()">Send Code →</button>
-<button class="btn btn-secondary" style="margin-top:8px;" onclick="backToLogin()">← Back to Sign in</button>
-<div id="forgotError" class="error-msg"></div>
-</div>
+<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetLink()">Send link</button></div></div></div>
+<div id="resetModal" class="modal-overlay"><div class="modal"><h3>Create new password</h3><p>Enter new password for <strong id="resetEmailDisplay"></strong></p><input type="password" id="newPassword" placeholder="New password"><input type="password" id="confirmPassword" placeholder="Confirm password"><div id="resetModalError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeResetModal()">Cancel</button><button class="modal-submit" onclick="updatePassword()">Update</button></div></div></div>
 
-<!-- Step 3: OTP Verification -->
-<div id="stepOTP" style="display:none;">
-<p>We've sent a code to <strong id="otpEmailDisplay"></strong></p>
-<div class="form-group"><label>Verification Code</label><input type="text" id="resetOTP" placeholder="Enter 6-digit code" maxlength="6"></div>
-<div class="otp-group"><button class="btn-secondary" id="resendOtpBtn" onclick="resendResetOTP()" style="flex:1;">Resend Code</button><button class="btn" id="verifyOtpBtn" onclick="verifyResetOTP()" style="flex:1;">Verify →</button></div>
-<div id="resendTimer" class="resend-timer"></div>
-<div id="otpError" class="error-msg"></div>
-</div>
+<footer>
+<div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a><a href="#">Privacy</a><a href="#">Terms</a></div>
+<div class="footer-copy">© 2026 Slate. All rights reserved.</div>
+</footer>
 
-<!-- Step 4: Reset Password -->
-<div id="stepReset" style="display:none;">
-<p>Create a new password for <strong id="resetEmailDisplay"></strong></p>
-<div class="form-group"><label>New Password</label><input type="password" id="newPassword" placeholder="Min 6 characters"></div>
-<div class="form-group"><label>Confirm Password</label><input type="password" id="confirmPassword" placeholder="Confirm new password"></div>
-<button class="btn" onclick="resetPassword()">Update Password →</button>
-<button class="btn btn-secondary" style="margin-top:8px;" onclick="backToLogin()">← Back to Sign in</button>
-<div id="resetError" class="error-msg"></div>
-</div>
-
-<div class="links"><a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a></div>
-</div></div>
-
-<footer><div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a></div><div class="footer-copy">© 2026 Slate. All rights reserved.</div></footer>
-
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-// EMAILJS CREDENTIALS
-const EMAILJS_PUBLIC_KEY = "SHYsSMG5uOmMQb99a";
-const EMAILJS_SERVICE_ID = "service_icb0z9q";
-const EMAILJS_TEMPLATE_ID = "template_94gg1fk";
-
-emailjs.init(EMAILJS_PUBLIC_KEY);
-
-let resetEmail = null;
-let resetOTPCode = null;
-let resetOTPExpiry = null;
-let resendTimerInterval = null;
-
-function generateOTP() { return Math.floor(100000 + Math.random() * 900000).toString(); }
-
-async function sendOTPEmail(email, otp, name, action) {
-    const templateParams = {
-        to_email: email,
-        name: name,
-        otp: otp,
-        action: action
-    };
-    
-    try {
-        const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-        console.log('OTP email sent:', response);
-        return true;
-    } catch (error) {
-        console.error('Failed to send email:', error);
-        return false;
-    }
-}
-
-function login() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const users = JSON.parse(localStorage.getItem('slate_users') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-        localStorage.setItem('slate_user', JSON.stringify({ name: user.name, email: user.email }));
-        window.location.href = 'dashboard.html';
-    } else {
-        document.getElementById('loginError').innerText = 'Invalid email or password';
-        document.getElementById('loginError').style.display = 'block';
-    }
-}
-
-function showForgotStep() {
-    document.getElementById('stepLogin').style.display = 'none';
-    document.getElementById('stepForgot').style.display = 'block';
-}
-
-function backToLogin() {
-    document.getElementById('stepForgot').style.display = 'none';
-    document.getElementById('stepOTP').style.display = 'none';
-    document.getElementById('stepReset').style.display = 'none';
-    document.getElementById('stepLogin').style.display = 'block';
-    document.getElementById('loginError').style.display = 'none';
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-}
-
-async function sendResetOTP() {
-    const email = document.getElementById('forgotEmail').value.trim();
-    const users = JSON.parse(localStorage.getItem('slate_users') || '[]');
-    const user = users.find(u => u.email === email);
-    
-    const errorEl = document.getElementById('forgotError');
-    errorEl.style.display = 'none';
-    
-    if (!user) {
-        errorEl.innerText = 'No account found with this email';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    // Show loading state
-    const btn = document.getElementById('sendCodeBtn');
-    btn.innerText = 'Sending...';
-    btn.classList.add('loading');
-    
-    resetEmail = email;
-    resetOTPCode = generateOTP();
-    resetOTPExpiry = Date.now() + 300000; // 5 minutes
-    
-    localStorage.setItem('temp_reset_otp', JSON.stringify({ email, otp: resetOTPCode, expiry: resetOTPExpiry }));
-    
-    const name = user.name.split(' ')[0];
-    const emailSent = await sendOTPEmail(email, resetOTPCode, name, 'password reset');
-    
-    btn.innerText = 'Send Code →';
-    btn.classList.remove('loading');
-    
-    if (emailSent) {
-        document.getElementById('otpEmailDisplay').innerText = email;
-        document.getElementById('stepForgot').style.display = 'none';
-        document.getElementById('stepOTP').style.display = 'block';
-        startResetResendTimer();
-    } else {
-        errorEl.innerText = 'Failed to send verification email. Please try again.';
-        errorEl.style.display = 'block';
-    }
-}
-
-function verifyResetOTP() {
-    const enteredCode = document.getElementById('resetOTP').value.trim();
-    const stored = JSON.parse(localStorage.getItem('temp_reset_otp') || '{}');
-    const errorEl = document.getElementById('otpError');
-    errorEl.style.display = 'none';
-    
-    if (!stored.otp || stored.otp !== enteredCode) {
-        errorEl.innerText = 'Invalid verification code';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (Date.now() > stored.expiry) {
-        errorEl.innerText = 'Code expired. Please request a new one.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (stored.email !== resetEmail) {
-        errorEl.innerText = 'Email mismatch. Please try again.';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    document.getElementById('resetEmailDisplay').innerText = resetEmail;
-    document.getElementById('stepOTP').style.display = 'none';
-    document.getElementById('stepReset').style.display = 'block';
-}
-
-async function resendResetOTP() {
-    if (!resetEmail) return;
-    
-    const users = JSON.parse(localStorage.getItem('slate_users') || '[]');
-    const user = users.find(u => u.email === resetEmail);
-    
-    const resendBtn = document.getElementById('resendOtpBtn');
-    resendBtn.innerText = 'Sending...';
-    resendBtn.disabled = true;
-    
-    resetOTPCode = generateOTP();
-    resetOTPExpiry = Date.now() + 300000;
-    localStorage.setItem('temp_reset_otp', JSON.stringify({ email: resetEmail, otp: resetOTPCode, expiry: resetOTPExpiry }));
-    
-    const name = user ? user.name.split(' ')[0] : 'User';
-    const emailSent = await sendOTPEmail(resetEmail, resetOTPCode, name, 'password reset');
-    
-    resendBtn.innerText = 'Resend Code';
-    resendBtn.disabled = false;
-    
-    if (emailSent) {
-        alert(`New code sent to ${resetEmail}`);
-        startResetResendTimer();
-    } else {
-        document.getElementById('otpError').innerText = 'Failed to send code. Please try again.';
-        document.getElementById('otpError').style.display = 'block';
-    }
-}
-
-function startResetResendTimer() {
-    let timeLeft = 60;
-    const timerEl = document.getElementById('resendTimer');
-    const resendBtn = document.getElementById('resendOtpBtn');
-    resendBtn.disabled = true;
-    if (resendTimerInterval) clearInterval(resendTimerInterval);
-    resendTimerInterval = setInterval(() => {
-        if (timeLeft <= 0) {
-            clearInterval(resendTimerInterval);
-            timerEl.innerText = '';
-            resendBtn.disabled = false;
-        } else {
-            timerEl.innerText = `Resend available in ${timeLeft}s`;
-            timeLeft--;
-        }
-    }, 1000);
-}
-
-function resetPassword() {
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const errorEl = document.getElementById('resetError');
-    errorEl.style.display = 'none';
-    
-    if (!newPassword || newPassword.length < 6) {
-        errorEl.innerText = 'Password must be at least 6 characters';
-        errorEl.style.display = 'block';
-        return;
-    }
-    if (newPassword !== confirmPassword) {
-        errorEl.innerText = 'Passwords do not match';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    const users = JSON.parse(localStorage.getItem('slate_users') || '[]');
-    const userIndex = users.findIndex(u => u.email === resetEmail);
-    if (userIndex !== -1) {
-        users[userIndex].password = newPassword;
-        localStorage.setItem('slate_users', JSON.stringify(users));
-        localStorage.removeItem('temp_reset_otp');
-        alert('Password reset successful! Please sign in with your new password.');
-        backToLogin();
-    } else {
-        errorEl.innerText = 'Something went wrong. Try again.';
-        errorEl.style.display = 'block';
-    }
-}
+let pendingResetEmail=null;
+document.getElementById('loginForm').addEventListener('submit',function(e){e.preventDefault();let email=document.getElementById('email').value.trim();let pwd=document.getElementById('password').value;let users=JSON.parse(localStorage.getItem('slate_users')||'[]');let user=users.find(u=>u.email===email&&u.password===pwd);if(user){localStorage.setItem('slate_user',JSON.stringify({name:user.name,email:user.email}));window.location.href='dashboard.html';}else{document.getElementById('errorMsg').innerText='Invalid email or password';document.getElementById('errorMsg').style.display='block';}});
+function openForgotModal(){document.getElementById('forgotModal').classList.add('active');document.getElementById('resetEmail').value='';}
+function closeForgotModal(){document.getElementById('forgotModal').classList.remove('active');}
+function sendResetLink(){let email=document.getElementById('resetEmail').value.trim();let users=JSON.parse(localStorage.getItem('slate_users')||'[]');if(!users.find(u=>u.email===email)){document.getElementById('resetError').innerText='No account found';document.getElementById('resetError').style.display='block';return;}pendingResetEmail=email;closeForgotModal();document.getElementById('resetEmailDisplay').innerText=email;document.getElementById('resetModal').classList.add('active');}
+function closeResetModal(){document.getElementById('resetModal').classList.remove('active');}
+function updatePassword(){let np=document.getElementById('newPassword').value;let cp=document.getElementById('confirmPassword').value;if(!np||np.length<6){document.getElementById('resetModalError').innerText='Password must be at least 6 characters';return;}if(np!==cp){document.getElementById('resetModalError').innerText='Passwords do not match';return;}let users=JSON.parse(localStorage.getItem('slate_users')||'[]');let idx=users.findIndex(u=>u.email===pendingResetEmail);if(idx!==-1){users[idx].password=np;localStorage.setItem('slate_users',JSON.stringify(users));alert('Password reset successful!');closeResetModal();}else{document.getElementById('resetModalError').innerText='Error, try again';}}
 </script>
 </body>
 </html>
