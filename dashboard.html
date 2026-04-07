@@ -219,16 +219,16 @@ let currentViewDate = new Date();
 let currentView = 'week';
 let editingEventId = null;
 
-// Data storage
-let allTodos = {};
-let allHabits = {};
+// Data storage - using arrays for current day only (simpler)
+let currentTodos = [];
+let currentHabits = [];
 let allBrainDumps = {};
 let events = [];
 
 let currentCardBg = "#ffffff";
 let currentCardTextColor = "#1a1a18";
 
-// ========== SESSION TIMEOUT (5 minutes inactivity) ==========
+// Session Timeout
 let inactivityTimer;
 function resetInactivityTimer() {
     clearTimeout(inactivityTimer);
@@ -246,7 +246,7 @@ window.addEventListener('click', resetInactivityTimer);
 window.addEventListener('scroll', resetInactivityTimer);
 window.addEventListener('touchstart', resetInactivityTimer);
 
-// ========== WEATHER ==========
+// Weather
 async function getWeather() {
     try {
         const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=6.4541&longitude=3.3947&current_weather=true');
@@ -279,42 +279,39 @@ firebase.auth().onAuthStateChanged(async (user) => {
     
     resetInactivityTimer();
     
-    // Load all data from Firestore
-    await loadAllData();
+    // Load data for TODAY only
+    await loadTodayData();
     
     // Render everything
     renderTodos();
     renderHabits();
-    renderBrainDumps();
     renderCalendar();
     updateStats();
     updateDashboardDateDisplay();
 });
 
-async function loadAllData() {
+async function loadTodayData() {
     if (!currentUser) return;
     
-    // Load Todos
-    const todosSnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
-    allTodos = {};
+    const todayKey = getCurrentDateKey();
+    
+    // Load Todos for today
+    const todosSnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').where('dateKey', '==', todayKey).get();
+    currentTodos = [];
     todosSnapshot.forEach(doc => {
-        const data = doc.data();
-        const dateKey = data.dateKey;
-        if (!allTodos[dateKey]) allTodos[dateKey] = [];
-        allTodos[dateKey].push({ id: doc.id, text: data.text, completed: data.completed });
+        currentTodos.push({ id: doc.id, text: doc.data().text, completed: doc.data().completed });
     });
+    console.log("Todos loaded:", currentTodos.length);
     
-    // Load Habits
-    const habitsSnapshot = await db.collection('users').doc(currentUser.uid).collection('habits').get();
-    allHabits = {};
+    // Load Habits for today
+    const habitsSnapshot = await db.collection('users').doc(currentUser.uid).collection('habits').where('dateKey', '==', todayKey).get();
+    currentHabits = [];
     habitsSnapshot.forEach(doc => {
-        const data = doc.data();
-        const dateKey = data.dateKey;
-        if (!allHabits[dateKey]) allHabits[dateKey] = [];
-        allHabits[dateKey].push({ id: doc.id, name: data.name, completed: data.completed });
+        currentHabits.push({ id: doc.id, name: doc.data().name, completed: doc.data().completed });
     });
+    console.log("Habits loaded:", currentHabits.length);
     
-    // Load Brain Dumps
+    // Load Brain Dumps (all dates for search)
     const dumpsSnapshot = await db.collection('users').doc(currentUser.uid).collection('braindumps').get();
     allBrainDumps = {};
     dumpsSnapshot.forEach(doc => {
@@ -332,19 +329,13 @@ async function loadAllData() {
     });
 }
 
-// ========== HELPER FUNCTIONS ==========
-function getDateKey(d) { return d.toISOString().split('T')[0]; }
-function getCurrentDateKey() { return getDateKey(currentDisplayDate); }
-function getCurrentTodos() { let k = getCurrentDateKey(); if (!allTodos[k]) allTodos[k] = []; return allTodos[k]; }
-function getCurrentHabits() { let k = getCurrentDateKey(); if (!allHabits[k]) allHabits[k] = []; return allHabits[k]; }
-function getCurrentDumps() { let k = getCurrentDateKey(); if (!allBrainDumps[k]) allBrainDumps[k] = []; return allBrainDumps[k]; }
-
-async function saveTodoToFirestore(dateKey, todo) {
+async function saveTodoToFirestore(todo) {
     if (!currentUser) return;
+    const todayKey = getCurrentDateKey();
     await db.collection('users').doc(currentUser.uid).collection('todos').doc(todo.id).set({
         text: todo.text,
         completed: todo.completed,
-        dateKey: dateKey
+        dateKey: todayKey
     });
 }
 
@@ -353,12 +344,13 @@ async function deleteTodoFromFirestore(todoId) {
     await db.collection('users').doc(currentUser.uid).collection('todos').doc(todoId).delete();
 }
 
-async function saveHabitToFirestore(dateKey, habit) {
+async function saveHabitToFirestore(habit) {
     if (!currentUser) return;
+    const todayKey = getCurrentDateKey();
     await db.collection('users').doc(currentUser.uid).collection('habits').doc(habit.id).set({
         name: habit.name,
         completed: habit.completed,
-        dateKey: dateKey
+        dateKey: todayKey
     });
 }
 
@@ -392,22 +384,28 @@ function logout() {
     window.location.href = 'login.html';
 }
 
+function getDateKey(d) { return d.toISOString().split('T')[0]; }
+function getCurrentDateKey() { return getDateKey(currentDisplayDate); }
+
 function changeDate(d) {
     currentDisplayDate.setDate(currentDisplayDate.getDate() + d);
     updateDashboardDateDisplay();
-    renderTodos();
-    renderHabits();
-    renderBrainDumps();
-    updateStats();
+    // Reload data for new date
+    loadTodayData().then(() => {
+        renderTodos();
+        renderHabits();
+        updateStats();
+    });
 }
 
 function goToTodayDashboard() {
     currentDisplayDate = new Date();
     updateDashboardDateDisplay();
-    renderTodos();
-    renderHabits();
-    renderBrainDumps();
-    updateStats();
+    loadTodayData().then(() => {
+        renderTodos();
+        renderHabits();
+        updateStats();
+    });
 }
 
 function updateDashboardDateDisplay() {
@@ -433,10 +431,9 @@ function switchTab(t) {
 // ========== TODOS ==========
 function renderTodos() {
     let list = document.getElementById('todoList');
-    let todos = getCurrentTodos();
-    if (todos.length === 0) { list.innerHTML = '<div class="empty-state">📝 No tasks yet. Add one above!</div>'; return; }
+    if (currentTodos.length === 0) { list.innerHTML = '<div class="empty-state">📝 No tasks yet. Add one above!</div>'; return; }
     list.innerHTML = '';
-    todos.forEach(t => {
+    currentTodos.forEach(t => {
         let li = document.createElement('li');
         li.className = `todo-item ${t.completed ? 'completed' : ''}`;
         li.innerHTML = `<input type="checkbox" ${t.completed ? 'checked' : ''} onclick="toggleTodo('${t.id}')"><label onclick="toggleTodo('${t.id}')">${escapeHtml(t.text)}</label><button class="delete-todo" onclick="deleteTodo('${t.id}')">✕</button>`;
@@ -449,31 +446,28 @@ async function addTodo() {
     let input = document.getElementById('newTodoInput');
     let text = input.value.trim();
     if (!text) return;
-    let todos = getCurrentTodos();
+    
     let newId = Date.now().toString();
     let newTodo = { id: newId, text: text, completed: false };
-    todos.push(newTodo);
-    await saveTodoToFirestore(getCurrentDateKey(), newTodo);
+    currentTodos.push(newTodo);
+    await saveTodoToFirestore(newTodo);
     renderTodos();
     input.value = '';
 }
 
 async function toggleTodo(id) {
-    let todos = getCurrentTodos();
-    let t = todos.find(t => t.id === id);
+    let t = currentTodos.find(t => t.id === id);
     if (t) {
         t.completed = !t.completed;
-        await saveTodoToFirestore(getCurrentDateKey(), t);
+        await saveTodoToFirestore(t);
         renderTodos();
     }
 }
 
 async function deleteTodo(id) {
-    let t = getCurrentTodos().find(t => t.id === id);
+    let t = currentTodos.find(t => t.id === id);
     if (t && confirm(`Delete "${t.text}"?`)) {
-        let filtered = getCurrentTodos().filter(t => t.id !== id);
-        let dateKey = getCurrentDateKey();
-        allTodos[dateKey] = filtered;
+        currentTodos = currentTodos.filter(t => t.id !== id);
         await deleteTodoFromFirestore(id);
         renderTodos();
     }
@@ -482,10 +476,9 @@ async function deleteTodo(id) {
 // ========== HABITS ==========
 function renderHabits() {
     let tracker = document.getElementById('habitTracker');
-    let habits = getCurrentHabits();
-    if (habits.length === 0) { tracker.innerHTML = '<div class="empty-state">✅ No habits yet. Add one below!</div>'; return; }
+    if (currentHabits.length === 0) { tracker.innerHTML = '<div class="empty-state">✅ No habits yet. Add one below!</div>'; return; }
     tracker.innerHTML = '';
-    habits.forEach(h => {
+    currentHabits.forEach(h => {
         let div = document.createElement('div');
         div.className = 'habit-item';
         div.innerHTML = `<span class="habit-name">${escapeHtml(h.name)}</span><input type="checkbox" class="habit-check" ${h.completed ? 'checked' : ''} onchange="toggleHabit('${h.id}')"><button class="delete-habit" onclick="deleteHabit('${h.id}')">✕</button>`;
@@ -498,31 +491,28 @@ async function addHabit() {
     let input = document.getElementById('newHabitInput');
     let name = input.value.trim();
     if (!name) return;
-    let habits = getCurrentHabits();
+    
     let newId = Date.now().toString();
     let newHabit = { id: newId, name: name, completed: false };
-    habits.push(newHabit);
-    await saveHabitToFirestore(getCurrentDateKey(), newHabit);
+    currentHabits.push(newHabit);
+    await saveHabitToFirestore(newHabit);
     renderHabits();
     input.value = '';
 }
 
 async function toggleHabit(id) {
-    let habits = getCurrentHabits();
-    let h = habits.find(h => h.id === id);
+    let h = currentHabits.find(h => h.id === id);
     if (h) {
         h.completed = !h.completed;
-        await saveHabitToFirestore(getCurrentDateKey(), h);
+        await saveHabitToFirestore(h);
         renderHabits();
     }
 }
 
 async function deleteHabit(id) {
-    let h = getCurrentHabits().find(h => h.id === id);
+    let h = currentHabits.find(h => h.id === id);
     if (h && confirm(`Delete "${h.name}"?`)) {
-        let filtered = getCurrentHabits().filter(h => h.id !== id);
-        let dateKey = getCurrentDateKey();
-        allHabits[dateKey] = filtered;
+        currentHabits = currentHabits.filter(h => h.id !== id);
         await deleteHabitFromFirestore(id);
         renderHabits();
     }
@@ -531,13 +521,13 @@ async function deleteHabit(id) {
 // ========== BRAIN DUMPS ==========
 function renderBrainDumps() {
     let c = document.getElementById('dumpList');
-    let d = getCurrentDumps();
+    let d = allBrainDumps[getCurrentDateKey()] || [];
     if (d.length === 0) { c.innerHTML = '<div class="empty-state">💭 No brain dumps yet. Write something above!</div>'; return; }
     c.innerHTML = '';
-    d.slice().reverse().forEach(d => {
+    d.slice().reverse().forEach(dump => {
         let div = document.createElement('div');
         div.className = 'dump-item';
-        div.innerHTML = `<div class="dump-text">${escapeHtml(d.text)}</div><div class="dump-meta"><span>${new Date(d.timestamp).toLocaleTimeString()}</span><div class="dump-buttons"><button class="dump-convert" onclick="convertToTask('${d.id}')">📋 Convert to Task</button><button class="dump-delete" onclick="deleteBrainDump('${d.id}')">🗑️ Delete</button></div></div>`;
+        div.innerHTML = `<div class="dump-text">${escapeHtml(dump.text)}</div><div class="dump-meta"><span>${new Date(dump.timestamp).toLocaleTimeString()}</span><div class="dump-buttons"><button class="dump-convert" onclick="convertToTask('${dump.id}')">📋 Convert to Task</button><button class="dump-delete" onclick="deleteBrainDump('${dump.id}')">🗑️ Delete</button></div></div>`;
         c.appendChild(div);
     });
 }
@@ -545,31 +535,35 @@ function renderBrainDumps() {
 async function saveBrainDump() {
     let text = document.getElementById('dumpText').value.trim();
     if (!text) return;
-    let dumps = getCurrentDumps();
+    let dateKey = getCurrentDateKey();
+    let dumps = allBrainDumps[dateKey] || [];
     let newId = Date.now().toString();
     let newDump = { id: newId, text: text, timestamp: new Date().toISOString() };
     dumps.push(newDump);
-    await saveDumpToFirestore(getCurrentDateKey(), newDump);
+    allBrainDumps[dateKey] = dumps;
+    await saveDumpToFirestore(dateKey, newDump);
     renderBrainDumps();
     document.getElementById('dumpText').value = '';
 }
 
 async function deleteBrainDump(id) {
-    let filtered = getCurrentDumps().filter(d => d.id !== id);
     let dateKey = getCurrentDateKey();
+    let dumps = allBrainDumps[dateKey] || [];
+    let filtered = dumps.filter(d => d.id !== id);
     allBrainDumps[dateKey] = filtered;
     await deleteDumpFromFirestore(id);
     renderBrainDumps();
 }
 
 async function convertToTask(id) {
-    let d = getCurrentDumps().find(d => d.id === id);
-    if (d) {
-        let todos = getCurrentTodos();
+    let dateKey = getCurrentDateKey();
+    let dumps = allBrainDumps[dateKey] || [];
+    let dump = dumps.find(d => d.id === id);
+    if (dump) {
         let newId = Date.now().toString();
-        let newTodo = { id: newId, text: d.text, completed: false };
-        todos.push(newTodo);
-        await saveTodoToFirestore(getCurrentDateKey(), newTodo);
+        let newTodo = { id: newId, text: dump.text, completed: false };
+        currentTodos.push(newTodo);
+        await saveTodoToFirestore(newTodo);
         renderTodos();
         await deleteBrainDump(id);
         alert('Converted to task!');
@@ -582,9 +576,7 @@ function calculateStreak() {
     let today = new Date();
     today.setHours(0, 0, 0, 0);
     let todayKey = getDateKey(today);
-    let todayTodos = allTodos[todayKey] || [];
-    let todayHabits = allHabits[todayKey] || [];
-    let completedToday = todayTodos.filter(t => t.completed).length + todayHabits.filter(h => h.completed).length;
+    let completedToday = currentTodos.filter(t => t.completed).length + currentHabits.filter(h => h.completed).length;
     history[todayKey] = completedToday > 0;
     localStorage.setItem('slate_streak_history', JSON.stringify(history));
     let streak = 0, checkDate = new Date(today);
@@ -597,9 +589,9 @@ function calculateStreak() {
 }
 
 function updateStats() {
-    let ct = getCurrentTodos().filter(t => t.completed).length;
-    let ch = getCurrentHabits().filter(h => h.completed).length;
-    let total = getCurrentTodos().length + getCurrentHabits().length;
+    let ct = currentTodos.filter(t => t.completed).length;
+    let ch = currentHabits.filter(h => h.completed).length;
+    let total = currentTodos.length + currentHabits.length;
     let rate = total === 0 ? 0 : Math.round(((ct + ch) / total) * 100);
     let streak = calculateStreak();
     document.getElementById('tasksCompleted').innerText = ct;
@@ -614,18 +606,15 @@ function updateStats() {
 }
 
 async function resetDaily() {
-    if (confirm('Reset all tasks and habits for this day?')) {
-        let dateKey = getCurrentDateKey();
-        let todos = getCurrentTodos();
-        for (let todo of todos) {
+    if (confirm('Reset all tasks and habits for today?')) {
+        for (let todo of currentTodos) {
             await deleteTodoFromFirestore(todo.id);
         }
-        let habits = getCurrentHabits();
-        for (let habit of habits) {
+        for (let habit of currentHabits) {
             await deleteHabitFromFirestore(habit.id);
         }
-        allTodos[dateKey] = [];
-        allHabits[dateKey] = [];
+        currentTodos = [];
+        currentHabits = [];
         renderTodos();
         renderHabits();
         updateStats();
@@ -635,8 +624,8 @@ async function resetDaily() {
 
 // ========== SHARE CARD ==========
 function openShareModal() {
-    let ct = getCurrentTodos().filter(t => t.completed).length;
-    let ch = getCurrentHabits().filter(h => h.completed).length;
+    let ct = currentTodos.filter(t => t.completed).length;
+    let ch = currentHabits.filter(h => h.completed).length;
     let streak = calculateStreak();
     document.getElementById('shareTasks').innerText = ct;
     document.getElementById('shareHabits').innerText = ch;
@@ -838,14 +827,19 @@ function performSearch() {
     const resultsList = document.getElementById('searchResultsList');
     if (!query) { resultsDiv.style.display = 'none'; return; }
     let allResults = [];
-    for (const [dateKey, todos] of Object.entries(allTodos)) {
-        todos.forEach(todo => { if (todo.text.toLowerCase().includes(query)) allResults.push({ date: dateKey, text: todo.text, type: 'task' }); });
-    }
-    for (const [dateKey, habits] of Object.entries(allHabits)) {
-        habits.forEach(habit => { if (habit.name.toLowerCase().includes(query)) allResults.push({ date: dateKey, text: habit.name, type: 'habit' }); });
-    }
+    // Search todos (from currentTodos only for demo, would need full history)
+    currentTodos.forEach(todo => {
+        if (todo.text.toLowerCase().includes(query)) allResults.push({ date: getCurrentDateKey(), text: todo.text, type: 'task' });
+    });
+    // Search habits
+    currentHabits.forEach(habit => {
+        if (habit.name.toLowerCase().includes(query)) allResults.push({ date: getCurrentDateKey(), text: habit.name, type: 'habit' });
+    });
+    // Search brain dumps
     for (const [dateKey, dumps] of Object.entries(allBrainDumps)) {
-        dumps.forEach(dump => { if (dump.text.toLowerCase().includes(query)) allResults.push({ date: dateKey, text: dump.text.substring(0, 100), type: 'dump' }); });
+        dumps.forEach(dump => {
+            if (dump.text.toLowerCase().includes(query)) allResults.push({ date: dateKey, text: dump.text.substring(0, 100), type: 'dump' });
+        });
     }
     allResults.sort((a,b) => b.date.localeCompare(a.date));
     if (allResults.length === 0) {
