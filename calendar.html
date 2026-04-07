@@ -182,7 +182,6 @@ let currentViewDate = new Date();
 let currentView = 'week';
 let editingEventId = null;
 let events = [];
-let reminderCheckInterval = null;
 
 firebase.auth().onAuthStateChanged(async (user) => {
     if (!user) {
@@ -200,7 +199,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
     
     await loadEvents();
     renderCalendar();
-    startReminderChecker();
 });
 
 async function loadEvents() {
@@ -232,44 +230,29 @@ async function deleteEvent(eventId) {
     }
 }
 
-function startReminderChecker() {
-    if (reminderCheckInterval) clearInterval(reminderCheckInterval);
-    reminderCheckInterval = setInterval(checkReminders, 60000);
-}
-
-async function checkReminders() {
-    if (!currentUser) return;
-    const now = new Date();
-    
-    for (let event of events) {
-        if (event.reminder && !event.reminder.sent) {
-            const eventTime = new Date(event.start);
-            const reminderTime = new Date(eventTime.getTime() - (event.reminder.minutes * 60000));
-            
-            if (now >= reminderTime && now < eventTime) {
-                await sendEmailReminder(event, currentUser.email);
-                event.reminder.sent = true;
-                await saveEventToFirestore(event);
-            }
-        }
-    }
-}
-
-async function sendEmailReminder(event, userEmail) {
-    console.log("Sending to user email:", userEmail);
+async function sendEmailReminder(event, userEmail, reminderMinutes) {
+    console.log("Sending reminder email to:", userEmail);
     
     const eventDate = new Date(event.start);
+    let reminderText = "";
+    if (reminderMinutes === 5) reminderText = "5 minutes before";
+    else if (reminderMinutes === 15) reminderText = "15 minutes before";
+    else if (reminderMinutes === 30) reminderText = "30 minutes before";
+    else if (reminderMinutes === 60) reminderText = "1 hour before";
+    else if (reminderMinutes === 1440) reminderText = "1 day before";
+    
     const templateParams = {
         to_email: userEmail,
         event_title: event.title,
         event_date: eventDate.toLocaleDateString(),
         event_time: eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        event_description: event.description || 'No description'
+        event_description: event.description || 'No description',
+        reminder_time: reminderText
     };
     
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-        console.log('Reminder sent for:', event.title);
+        console.log('Reminder email sent successfully for:', event.title);
         return true;
     } catch (error) {
         console.error('Failed to send reminder:', error);
@@ -502,11 +485,16 @@ async function saveEvent() {
     }
     
     let reminder = null;
+    let reminderMinutes = 0;
+    let sendEmailNow = false;
+    
     if (document.getElementById('enableReminder').checked) {
+        reminderMinutes = parseInt(document.getElementById('reminderMinutes').value);
         reminder = {
-            minutes: parseInt(document.getElementById('reminderMinutes').value),
-            sent: false
+            minutes: reminderMinutes,
+            sent: true
         };
+        sendEmailNow = true;
     }
     
     let eventData = {
@@ -527,6 +515,17 @@ async function saveEvent() {
     }
     
     await saveEventToFirestore(eventData);
+    
+    // Send email immediately if reminder was checked
+    if (sendEmailNow && currentUser) {
+        const emailSent = await sendEmailReminder(eventData, currentUser.email, reminderMinutes);
+        if (emailSent) {
+            alert(`Reminder for "${title}" has been sent to ${currentUser.email}`);
+        } else {
+            alert('Failed to send reminder email. Please check your internet connection.');
+        }
+    }
+    
     closeEventModal();
     renderCalendar();
 }
@@ -569,7 +568,7 @@ window.deleteEvent = deleteEvent;
 window.logout = logout;
 window.toggleTheme = toggleTheme;
 </script>
-  <script>
+<script>
 // Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
