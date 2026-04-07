@@ -31,20 +31,15 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1.25re
 .feat-icon{font-size:26px;margin-bottom:1rem;}
 .feat-title{font-weight:600;margin-bottom:.5rem;}
 .feat-desc{font-size:13px;color:var(--muted);}
-.pricing{max-width:780px;margin:0 auto;padding:4rem 2rem;}
-.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
-.price-card{background:var(--surface);border:.5px solid var(--border);border-radius:20px;padding:2rem;position:relative;}
-.price-card.featured{border-color:var(--accent);border-width:2px;}
-.price-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:11px;}
+.pricing{max-width:600px;margin:0 auto;padding:4rem 2rem;}
+.price-card{background:var(--surface);border:.5px solid var(--border);border-radius:20px;padding:2rem;text-align:center;}
 .price-amount{font-family:'DM Serif Display',serif;font-size:42px;}
-.price-btn{width:100%;padding:12px;border-radius:12px;text-align:center;display:block;text-decoration:none;margin-top:1rem;}
-.price-btn.filled{background:var(--accent);color:#fff;}
-.price-btn.outline{border:.5px solid var(--border);color:var(--text);}
+.price-btn{width:100%;padding:12px;border-radius:12px;text-align:center;display:block;text-decoration:none;margin-top:1rem;background:var(--accent);color:#fff;}
 footer{border-top:.5px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
 .footer-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
 .footer-links a:hover{color:var(--text);}
-@media(max-width:680px){.feat-grid,.price-grid{grid-template-columns:1fr;} nav{padding:1rem;} .nav-links{display:none;} footer{flex-direction:column;text-align:center;}}
+@media(max-width:680px){.feat-grid{grid-template-columns:1fr;} nav{padding:1rem;} .nav-links{display:none;} footer{flex-direction:column;text-align:center;}}
 </style>
 </head>
 <body>
@@ -81,10 +76,12 @@ footer{border-top:.5px solid var(--border);padding:2rem 3rem;display:flex;justif
 </section>
 
 <section id="pricing" class="pricing">
-<h2 class="section-title">Simple, honest pricing.</h2>
-<div class="price-grid">
-<div class="price-card"><div class="price-name">Free</div><div class="price-amount">$0<span>/month</span></div><a href="signup.html" class="price-btn outline">Get started</a></div>
-<div class="price-card featured"><div class="price-badge">Most popular</div><div class="price-name">Pro</div><div class="price-amount">$9<span>/month</span></div><a href="signup.html?plan=pro" class="price-btn filled">Start free trial</a></div>
+<h2 class="section-title">Simple, free forever.</h2>
+<div class="price-card">
+<div class="price-name">Free</div>
+<div class="price-amount">$0<span>/month</span></div>
+<p style="margin:1rem 0;color:var(--muted);">All features included, no credit card required.</p>
+<a href="signup.html" class="price-btn">Get started free</a>
 </div>
 </section>
 
