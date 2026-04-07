@@ -14,24 +14,22 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 .logo em{color:var(--accent);font-style:normal;}
 .nav-links{display:flex;gap:1.5rem;}
 .nav-links a{text-decoration:none;font-size:13px;color:var(--muted);}
-.nav-links a:hover{color:var(--text);}
-.login-container{max-width:480px;width:100%;margin:auto;padding:2rem;}
-.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2.5rem;}
+.container{max-width:480px;width:100%;margin:auto;padding:2rem;}
+.card{background:var(--surface);border-radius:24px;border:.5px solid var(--border);padding:2rem;}
 h1{font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:.5rem;}
-.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:2rem;}
-.form-group{margin-bottom:1.25rem;}
+.subtitle{text-align:center;color:var(--muted);font-size:14px;margin-bottom:1.5rem;}
+.form-group{margin-bottom:1rem;}
 label{display:block;font-size:13px;font-weight:500;margin-bottom:.5rem;}
 input{width:100%;padding:12px 16px;border:.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;background:var(--surface);color:var(--text);}
 input:focus{outline:none;border-color:var(--accent);}
-.btn-login{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
-.btn-login:hover{opacity:.88;}
+.btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
+.btn:hover{opacity:.88;}
 .forgot-link{text-align:right;margin-top:-8px;margin-bottom:12px;}
-.forgot-link a{font-size:12px;color:var(--muted);text-decoration:none;}
+.forgot-link a{font-size:12px;color:var(--muted);text-decoration:none;cursor:pointer;}
+.error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
 .links{text-align:center;margin-top:1.5rem;}
 .links a{color:var(--muted);text-decoration:none;font-size:13px;}
-.links a:hover{color:var(--accent);}
-.links span{margin:0 8px;}
-.error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
+.loading{opacity:0.6;pointer-events:none;}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
 .modal-overlay.active{display:flex;}
 .modal{background:var(--surface);border-radius:24px;padding:2rem;max-width:450px;width:90%;}
@@ -45,8 +43,9 @@ input:focus{outline:none;border-color:var(--accent);}
 footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center;margin-top:auto;}
 .footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.5rem;}
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
-.footer-copy{font-size:11px;color:var(--muted);}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <nav>
@@ -59,39 +58,132 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 </div>
 </nav>
 
-<div class="login-container">
+<div class="container">
 <div class="card">
 <h1>Welcome back</h1>
 <p class="subtitle">Sign in to continue your journey</p>
-<form id="loginForm">
-<div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="hello@example.com"></div>
-<div class="form-group"><label>Password</label><input type="password" id="password" required placeholder="Enter your password"></div>
-<div class="forgot-link"><a href="#" onclick="openForgotModal()">Forgot password?</a></div>
-<button type="submit" class="btn-login">Sign in →</button>
-<div id="errorMsg" class="error-msg"></div>
-</form>
-<div class="links">
-<a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a>
-</div>
-</div>
+
+<div id="stepLogin">
+<div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="hello@example.com"></div>
+<div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
+<div class="forgot-link"><a onclick="showForgotModal()">Forgot password?</a></div>
+<button class="btn" id="loginBtn" onclick="login()">Sign in →</button>
+<div id="loginError" class="error-msg"></div>
 </div>
 
-<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetLink()">Send link</button></div></div></div>
-<div id="resetModal" class="modal-overlay"><div class="modal"><h3>Create new password</h3><p>Enter new password for <strong id="resetEmailDisplay"></strong></p><input type="password" id="newPassword" placeholder="New password"><input type="password" id="confirmPassword" placeholder="Confirm password"><div id="resetModalError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeResetModal()">Cancel</button><button class="modal-submit" onclick="updatePassword()">Update</button></div></div></div>
+<div class="links"><a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a></div>
+</div></div>
 
-<footer>
-<div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a><a href="#">Privacy</a><a href="#">Terms</a></div>
-<div class="footer-copy">© 2026 Slate. All rights reserved.</div>
-</footer>
+<!-- Forgot Password Modal -->
+<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a password reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetEmail()">Send reset link</button></div></div></div>
+
+<footer><div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a></div><div class="footer-copy">© 2026 Slate. All rights reserved.</div></footer>
 
 <script>
-let pendingResetEmail=null;
-document.getElementById('loginForm').addEventListener('submit',function(e){e.preventDefault();let email=document.getElementById('email').value.trim();let pwd=document.getElementById('password').value;let users=JSON.parse(localStorage.getItem('slate_users')||'[]');let user=users.find(u=>u.email===email&&u.password===pwd);if(user){localStorage.setItem('slate_user',JSON.stringify({name:user.name,email:user.email}));window.location.href='dashboard.html';}else{document.getElementById('errorMsg').innerText='Invalid email or password';document.getElementById('errorMsg').style.display='block';}});
-function openForgotModal(){document.getElementById('forgotModal').classList.add('active');document.getElementById('resetEmail').value='';}
-function closeForgotModal(){document.getElementById('forgotModal').classList.remove('active');}
-function sendResetLink(){let email=document.getElementById('resetEmail').value.trim();let users=JSON.parse(localStorage.getItem('slate_users')||'[]');if(!users.find(u=>u.email===email)){document.getElementById('resetError').innerText='No account found';document.getElementById('resetError').style.display='block';return;}pendingResetEmail=email;closeForgotModal();document.getElementById('resetEmailDisplay').innerText=email;document.getElementById('resetModal').classList.add('active');}
-function closeResetModal(){document.getElementById('resetModal').classList.remove('active');}
-function updatePassword(){let np=document.getElementById('newPassword').value;let cp=document.getElementById('confirmPassword').value;if(!np||np.length<6){document.getElementById('resetModalError').innerText='Password must be at least 6 characters';return;}if(np!==cp){document.getElementById('resetModalError').innerText='Passwords do not match';return;}let users=JSON.parse(localStorage.getItem('slate_users')||'[]');let idx=users.findIndex(u=>u.email===pendingResetEmail);if(idx!==-1){users[idx].password=np;localStorage.setItem('slate_users',JSON.stringify(users));alert('Password reset successful!');closeResetModal();}else{document.getElementById('resetModalError').innerText='Error, try again';}}
+const firebaseConfig = {
+  apiKey: "AIzaSyBe-shv8pxkhnyiEGmpK9RG7MoO0NFYQfY",
+  authDomain: "slate-app-a66f9.firebaseapp.com",
+  projectId: "slate-app-a66f9",
+  storageBucket: "slate-app-a66f9.firebasestorage.app",
+  messagingSenderId: "683853322128",
+  appId: "1:683853322128:web:ba3c8e4d7ee2c4f1494515",
+  measurementId: "G-FZLN9YF0VW"
+};
+firebase.initializeApp(firebaseConfig);
+
+async function login() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    errorEl.style.display = 'none';
+    
+    if (!email || !password) {
+        errorEl.innerText = 'Please enter both email and password';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    const btn = document.getElementById('loginBtn');
+    btn.innerText = 'Signing in...';
+    btn.classList.add('loading');
+    
+    try {
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        if (!user.emailVerified) {
+            await firebase.auth().signOut();
+            errorEl.innerText = 'Please verify your email before signing in. Check your inbox for a verification link.';
+            errorEl.style.display = 'block';
+            return;
+        }
+        
+        // Store user info
+        localStorage.setItem('slate_user', JSON.stringify({
+            name: user.displayName || email.split('@')[0],
+            email: user.email,
+            uid: user.uid
+        }));
+        
+        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Login error:', error);
+        let message = error.message;
+        if (message.includes('user-not-found') || message.includes('wrong-password')) {
+            message = 'Invalid email or password';
+        } else if (message.includes('too-many-requests')) {
+            message = 'Too many failed attempts. Try again later.';
+        }
+        errorEl.innerText = message;
+        errorEl.style.display = 'block';
+    } finally {
+        btn.innerText = 'Sign in →';
+        btn.classList.remove('loading');
+    }
+}
+
+function showForgotModal() {
+    document.getElementById('forgotModal').classList.add('active');
+    document.getElementById('resetEmail').value = '';
+    document.getElementById('resetError').style.display = 'none';
+}
+
+function closeForgotModal() {
+    document.getElementById('forgotModal').classList.remove('active');
+}
+
+async function sendResetEmail() {
+    const email = document.getElementById('resetEmail').value.trim();
+    const errorEl = document.getElementById('resetError');
+    errorEl.style.display = 'none';
+    
+    if (!email) {
+        errorEl.innerText = 'Please enter your email';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    const btn = event.target;
+    btn.innerText = 'Sending...';
+    btn.disabled = true;
+    
+    try {
+        await firebase.auth().sendPasswordResetEmail(email);
+        alert('Password reset email sent! Check your inbox.');
+        closeForgotModal();
+    } catch (error) {
+        console.error('Reset error:', error);
+        let message = error.message;
+        if (message.includes('user-not-found')) {
+            message = 'No account found with this email';
+        }
+        errorEl.innerText = message;
+        errorEl.style.display = 'block';
+    } finally {
+        btn.innerText = 'Send reset link';
+        btn.disabled = false;
+    }
+}
 </script>
 </body>
 </html>
