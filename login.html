@@ -24,12 +24,18 @@ input{width:100%;padding:12px 16px;border:.5px solid var(--border);border-radius
 input:focus{outline:none;border-color:var(--accent);}
 .btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
 .btn:hover{opacity:.88;}
+.btn-google{width:100%;padding:12px;background:var(--surface);color:var(--text);border:.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:1rem;display:flex;align-items:center;justify-content:center;gap:10px;}
+.btn-google:hover{background:var(--tag);}
 .forgot-link{text-align:right;margin-top:-8px;margin-bottom:12px;}
 .forgot-link a{font-size:12px;color:var(--muted);text-decoration:none;cursor:pointer;}
 .error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
+.divider{text-align:center;margin:1.5rem 0;position:relative;}
+.divider::before{content:'';position:absolute;top:50%;left:0;width:45%;height:.5px;background:var(--border);}
+.divider::after{content:'';position:absolute;top:50%;right:0;width:45%;height:.5px;background:var(--border);}
+.divider span{background:var(--surface);padding:0 10px;color:var(--muted);font-size:12px;}
 .links{text-align:center;margin-top:1.5rem;}
 .links a{color:var(--muted);text-decoration:none;font-size:13px;}
-.loading{opacity:0.6;pointer-events:none;}
+.links a:hover{color:var(--accent);}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
 .modal-overlay.active{display:flex;}
 .modal{background:var(--surface);border-radius:24px;padding:2rem;max-width:450px;width:90%;}
@@ -68,14 +74,26 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
 <div class="forgot-link"><a onclick="showForgotModal()">Forgot password?</a></div>
 <button class="btn" id="loginBtn" onclick="login()">Sign in →</button>
+
+<div class="divider"><span>or</span></div>
+
+<button class="btn-google" onclick="googleSignIn()">
+<svg width="20" height="20" viewBox="0 0 24 24">
+<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+</svg>
+Continue with Google
+</button>
+
 <div id="loginError" class="error-msg"></div>
 </div>
 
 <div class="links"><a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a></div>
 </div></div>
 
-<!-- Forgot Password Modal -->
-<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a password reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetEmail()">Send reset link</button></div></div></div>
+<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetEmail()">Send link</button></div></div></div>
 
 <footer><div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a></div><div class="footer-copy">© 2026 Slate. All rights reserved.</div></footer>
 
@@ -91,6 +109,31 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
+// Google Sign In
+async function googleSignIn() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
+    try {
+        const result = await firebase.auth().signInWithPopup(provider);
+        const user = result.user;
+        
+        // Store user info
+        localStorage.setItem('slate_user', JSON.stringify({
+            name: user.displayName,
+            email: user.email,
+            uid: user.uid
+        }));
+        
+        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Google sign in error:', error);
+        document.getElementById('loginError').innerText = error.message;
+        document.getElementById('loginError').style.display = 'block';
+    }
+}
+
+// Email/Password Login
 async function login() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
@@ -113,12 +156,11 @@ async function login() {
         
         if (!user.emailVerified) {
             await firebase.auth().signOut();
-            errorEl.innerText = 'Please verify your email before signing in. Check your inbox for a verification link.';
+            errorEl.innerText = 'Please verify your email before signing in. Check your inbox.';
             errorEl.style.display = 'block';
             return;
         }
         
-        // Store user info
         localStorage.setItem('slate_user', JSON.stringify({
             name: user.displayName || email.split('@')[0],
             email: user.email,
@@ -127,7 +169,6 @@ async function login() {
         
         window.location.href = 'dashboard.html';
     } catch (error) {
-        console.error('Login error:', error);
         let message = error.message;
         if (message.includes('user-not-found') || message.includes('wrong-password')) {
             message = 'Invalid email or password';
@@ -142,6 +183,7 @@ async function login() {
     }
 }
 
+// Forgot Password
 function showForgotModal() {
     document.getElementById('forgotModal').classList.add('active');
     document.getElementById('resetEmail').value = '';
@@ -172,7 +214,6 @@ async function sendResetEmail() {
         alert('Password reset email sent! Check your inbox.');
         closeForgotModal();
     } catch (error) {
-        console.error('Reset error:', error);
         let message = error.message;
         if (message.includes('user-not-found')) {
             message = 'No account found with this email';
@@ -180,24 +221,29 @@ async function sendResetEmail() {
         errorEl.innerText = message;
         errorEl.style.display = 'block';
     } finally {
-        btn.innerText = 'Send reset link';
+        btn.innerText = 'Send link';
         btn.disabled = false;
     }
 }
-</script>
-    <script>
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/slate-app/sw.js')
-      .then(registration => {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch(error => {
-        console.log('Service Worker registration failed:', error);
-      });
-  });
+
+// Theme
+function toggleTheme() {
+    let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('slate_theme', t);
 }
+function loadTheme() {
+    let s = localStorage.getItem('slate_theme');
+    if (s) document.documentElement.setAttribute('data-theme', s);
+}
+loadTheme();
+
+window.googleSignIn = googleSignIn;
+window.login = login;
+window.showForgotModal = showForgotModal;
+window.closeForgotModal = closeForgotModal;
+window.sendResetEmail = sendResetEmail;
+window.toggleTheme = toggleTheme;
 </script>
 </body>
 </html>
