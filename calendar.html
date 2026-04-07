@@ -256,6 +256,8 @@ async function checkReminders() {
 }
 
 async function sendEmailReminder(event, userEmail) {
+    console.log("Sending to user email:", userEmail);  // ← ADD THIS LINE
+    
     const eventDate = new Date(event.start);
     const templateParams = {
         to_email: userEmail,
