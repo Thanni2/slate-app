@@ -136,6 +136,10 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 .download-btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:500;}
 @media(max-width:900px){.dashboard-grid{grid-template-columns:1fr;}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <nav>
@@ -160,7 +164,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 <button class="tab-btn" onclick="window.location.href='support.html'">Support</button>
 </div>
 
-<!-- Search Section -->
 <div class="search-section">
 <input type="text" class="search-input" id="searchInput" placeholder="Search past tasks, habits, or brain dumps...">
 <button class="search-btn" onclick="performSearch()">🔍 Search</button>
@@ -196,19 +199,151 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 
 <div id="shareModal" class="share-modal-overlay"><div class="share-card"><h3 style="margin-bottom:1rem;">Share Your Progress</h3><div id="shareCardPreview" class="share-card-preview" style="background:#ffffff;color:#1a1a18;"><div class="share-card-text">✨ I completed <span id="shareTasks">0</span> tasks and <span id="shareHabits">0</span> habits today!<br>🔥 <span id="shareStreak">0</span> day streak on Slate</div><div class="share-card-meta">Slate — A clean slate, every single day</div></div><div class="color-controls"><p style="width:100%;margin-bottom:8px;">Background:</p><div class="color-option white" onclick="setCardColor('#ffffff','#1a1a18')"></div><div class="color-option beige" onclick="setCardColor('#f5f0e8','#1a1a18')"></div><div class="color-option blue" onclick="setCardColor('#2563eb','#ffffff')"></div><div class="color-option dark" onclick="setCardColor('#1a1a18','#ffffff')"></div></div><div class="text-color-controls"><p style="width:100%;margin-bottom:8px;">Text Color:</p><button class="text-color-btn" onclick="setCardTextColor('#1a1a18')">Dark</button><button class="text-color-btn" onclick="setCardTextColor('#ffffff')">Light</button></div><button class="download-btn" onclick="downloadShareCard()">📸 Download as Image</button><button class="download-btn" style="margin-top:8px;background:var(--surface);color:var(--text);border:.5px solid var(--border);" onclick="closeShareModal()">Close</button></div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
-// EMAILJS CREDENTIALS
-const EMAILJS_PUBLIC_KEY = "SHYsSMG5uOmMQb99a";
-const EMAILJS_SERVICE_ID = "service_icb0z9q";
-const EMAILJS_TEMPLATE_ID = "template_94gg1fk";
+const firebaseConfig = {
+  apiKey: "AIzaSyBe-shv8pxkhnyiEGmpK9RG7MoO0NFYQfY",
+  authDomain: "slate-app-a66f9.firebaseapp.com",
+  projectId: "slate-app-a66f9",
+  storageBucket: "slate-app-a66f9.firebasestorage.app",
+  messagingSenderId: "683853322128",
+  appId: "1:683853322128:web:ba3c8e4d7ee2c4f1494515",
+  measurementId: "G-FZLN9YF0VW"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-emailjs.init(EMAILJS_PUBLIC_KEY);
+let currentUser = null;
+let currentDisplayDate = new Date();
+let currentViewDate = new Date();
+let currentView = 'week';
+let editingEventId = null;
+let reminderCheckInterval = null;
 
-let currentUser = null, currentDisplayDate = new Date(), currentViewDate = new Date(), currentView = 'week', editingEventId = null, reminderCheckInterval = null;
-let allTodos = {}, allHabits = {}, allBrainDumps = {}, events = [];
-let currentCardBg = "#ffffff", currentCardTextColor = "#1a1a18";
+// Data storage (synced with Firestore)
+let allTodos = {};
+let allHabits = {};
+let allBrainDumps = {};
+let events = [];
+
+let currentCardBg = "#ffffff";
+let currentCardTextColor = "#1a1a18";
+
+// ========== AUTH CHECK ==========
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) {
+        window.location.href = 'login.html';
+        return;
+    }
+    if (!user.emailVerified) {
+        await firebase.auth().signOut();
+        alert('Please verify your email before accessing your dashboard.');
+        window.location.href = 'login.html';
+        return;
+    }
+    currentUser = user;
+    document.getElementById('userNameDisplay').innerText = user.displayName?.split(' ')[0] || user.email.split('@')[0];
+    document.getElementById('welcomeMessage').innerHTML = `Welcome to Slate, ${user.displayName?.split(' ')[0] || 'User'} ✨`;
+    
+    await loadAllData();
+    renderTodos();
+    renderHabits();
+    renderBrainDumps();
+    renderCalendar();
+    updateStats();
+    updateDashboardDateDisplay();
+});
+
+// ========== FIRESTORE DATA FUNCTIONS ==========
+async function loadAllData() {
+    if (!currentUser) return;
+    
+    // Load todos
+    const todosSnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
+    allTodos = {};
+    todosSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (!allTodos[data.dateKey]) allTodos[data.dateKey] = [];
+        allTodos[data.dateKey].push({ id: doc.id, ...data });
+    });
+    
+    // Load habits
+    const habitsSnapshot = await db.collection('users').doc(currentUser.uid).collection('habits').get();
+    allHabits = {};
+    habitsSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (!allHabits[data.dateKey]) allHabits[data.dateKey] = [];
+        allHabits[data.dateKey].push({ id: doc.id, ...data });
+    });
+    
+    // Load brain dumps
+    const dumpsSnapshot = await db.collection('users').doc(currentUser.uid).collection('braindumps').get();
+    allBrainDumps = {};
+    dumpsSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (!allBrainDumps[data.dateKey]) allBrainDumps[data.dateKey] = [];
+        allBrainDumps[data.dateKey].push({ id: doc.id, ...data });
+    });
+    
+    // Load events
+    const eventsSnapshot = await db.collection('users').doc(currentUser.uid).collection('events').get();
+    events = [];
+    eventsSnapshot.forEach(doc => {
+        events.push({ id: doc.id, ...doc.data() });
+    });
+}
+
+async function saveTodoToFirestore(dateKey, todo) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('todos').doc(todo.id).set({
+        text: todo.text,
+        completed: todo.completed,
+        dateKey: dateKey
+    });
+}
+
+async function deleteTodoFromFirestore(todoId) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('todos').doc(todoId).delete();
+}
+
+async function saveHabitToFirestore(dateKey, habit) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('habits').doc(habit.id).set({
+        name: habit.name,
+        completed: habit.completed,
+        dateKey: dateKey
+    });
+}
+
+async function deleteHabitFromFirestore(habitId) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('habits').doc(habitId).delete();
+}
+
+async function saveDumpToFirestore(dateKey, dump) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('braindumps').doc(dump.id).set({
+        text: dump.text,
+        timestamp: dump.timestamp,
+        dateKey: dateKey
+    });
+}
+
+async function deleteDumpFromFirestore(dumpId) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('braindumps').doc(dumpId).delete();
+}
+
+async function saveEventToFirestore(event) {
+    if (!currentUser) return;
+    const { id, ...eventData } = event;
+    await db.collection('users').doc(currentUser.uid).collection('events').doc(id).set(eventData);
+}
+
+async function deleteEventFromFirestore(eventId) {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).collection('events').doc(eventId).delete();
+}
 
 // ========== WEATHER WIDGET ==========
 async function getWeather() {
@@ -236,44 +371,26 @@ function performSearch() {
     
     let allResults = [];
     
-    // Search through all todos across all dates
     for (const [dateKey, todos] of Object.entries(allTodos)) {
         todos.forEach(todo => {
             if (todo.text.toLowerCase().includes(query)) {
-                allResults.push({
-                    date: dateKey,
-                    text: todo.text,
-                    type: 'task',
-                    completed: todo.completed
-                });
+                allResults.push({ date: dateKey, text: todo.text, type: 'task', completed: todo.completed });
             }
         });
     }
     
-    // Search through all habits across all dates
     for (const [dateKey, habits] of Object.entries(allHabits)) {
         habits.forEach(habit => {
             if (habit.name.toLowerCase().includes(query)) {
-                allResults.push({
-                    date: dateKey,
-                    text: habit.name,
-                    type: 'habit',
-                    completed: habit.completed
-                });
+                allResults.push({ date: dateKey, text: habit.name, type: 'habit', completed: habit.completed });
             }
         });
     }
     
-    // Search through all brain dumps across all dates
     for (const [dateKey, dumps] of Object.entries(allBrainDumps)) {
         dumps.forEach(dump => {
             if (dump.text.toLowerCase().includes(query)) {
-                allResults.push({
-                    date: dateKey,
-                    text: dump.text.substring(0, 100),
-                    type: 'dump',
-                    timestamp: dump.timestamp
-                });
+                allResults.push({ date: dateKey, text: dump.text.substring(0, 100), type: 'dump' });
             }
         });
     }
@@ -295,69 +412,504 @@ function performSearch() {
 }
 
 // ========== HELPER FUNCTIONS ==========
-function getDateKey(d){ return d.toISOString().split('T')[0]; }
-function getCurrentDateKey(){ return getDateKey(currentDisplayDate); }
-function loadDataForDate(k){ let t=localStorage.getItem(`slate_todos_${k}`); allTodos[k]=t?JSON.parse(t):[]; let h=localStorage.getItem(`slate_habits_${k}`); allHabits[k]=h?JSON.parse(h):[]; let b=localStorage.getItem(`slate_dumps_${k}`); allBrainDumps[k]=b?JSON.parse(b):[]; }
-function saveCurrentData(){ let k=getCurrentDateKey(); localStorage.setItem(`slate_todos_${k}`,JSON.stringify(allTodos[k]||[])); localStorage.setItem(`slate_habits_${k}`,JSON.stringify(allHabits[k]||[])); localStorage.setItem(`slate_dumps_${k}`,JSON.stringify(allBrainDumps[k]||[])); }
-function getCurrentTodos(){ let k=getCurrentDateKey(); if(!allTodos[k])allTodos[k]=[]; return allTodos[k]; }
-function getCurrentHabits(){ let k=getCurrentDateKey(); if(!allHabits[k])allHabits[k]=[]; return allHabits[k]; }
-function getCurrentDumps(){ let k=getCurrentDateKey(); if(!allBrainDumps[k])allBrainDumps[k]=[]; return allBrainDumps[k]; }
+function getDateKey(d) { return d.toISOString().split('T')[0]; }
+function getCurrentDateKey() { return getDateKey(currentDisplayDate); }
+function getCurrentTodos() { let k = getCurrentDateKey(); if (!allTodos[k]) allTodos[k] = []; return allTodos[k]; }
+function getCurrentHabits() { let k = getCurrentDateKey(); if (!allHabits[k]) allHabits[k] = []; return allHabits[k]; }
+function getCurrentDumps() { let k = getCurrentDateKey(); if (!allBrainDumps[k]) allBrainDumps[k] = []; return allBrainDumps[k]; }
 
-function loadUser(){ let u=localStorage.getItem('slate_user'); if(!u){window.location.href='login.html';return;} currentUser=JSON.parse(u); document.getElementById('userNameDisplay').innerText=currentUser.name.split(' ')[0]; document.getElementById('welcomeMessage').innerHTML=`Welcome to Slate, ${currentUser.name.split(' ')[0]} ✨`; }
-function logout(){ localStorage.removeItem('slate_user'); window.location.href='login.html'; }
-function changeDate(d){ currentDisplayDate.setDate(currentDisplayDate.getDate()+d); updateDashboardDateDisplay(); loadDataForDate(getCurrentDateKey()); renderTodos(); renderHabits(); renderBrainDumps(); updateStats(); }
-function goToTodayDashboard(){ currentDisplayDate=new Date(); updateDashboardDateDisplay(); loadDataForDate(getCurrentDateKey()); renderTodos(); renderHabits(); renderBrainDumps(); updateStats(); }
-function updateDashboardDateDisplay(){ let el=document.getElementById('dashboardDateDisplay'); let isToday=currentDisplayDate.toDateString()===new Date().toDateString(); el.innerText=isToday?"Today":currentDisplayDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); document.getElementById('tasksHeader').innerText=isToday?"Today's Tasks":"Tasks for "+currentDisplayDate.toLocaleDateString('en-US',{month:'short',day:'numeric'}); document.getElementById('habitsHeader').innerText=isToday?"Today's Habits":"Habits for "+currentDisplayDate.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
-function switchTab(t){ document.getElementById('dashboardTab').style.display=t==='dashboard'?'block':'none'; document.getElementById('calendarTab').style.display=t==='calendar'?'block':'none'; document.getElementById('braindumpTab').style.display=t==='braindump'?'block':'none'; let ms={dashboard:'Track tasks, build habits, and stay productive.',calendar:'Plan your week with events and reminders.',braindump:'Capture ideas, thoughts, and random notes.'}; document.getElementById('bannerSub').innerText=ms[t]; if(t==='calendar')renderCalendar(); if(t==='braindump')renderBrainDumps(); let btns=document.querySelectorAll('.tab-btn'); btns.forEach((b,i)=>{b.classList.remove('active'); if(t==='dashboard'&&i===0)b.classList.add('active'); if(t==='calendar'&&i===1)b.classList.add('active'); if(t==='braindump'&&i===2)b.classList.add('active');}); }
+function logout() {
+    firebase.auth().signOut();
+    localStorage.removeItem('slate_user');
+    window.location.href = 'login.html';
+}
 
-function renderTodos(){ let list=document.getElementById('todoList'); let todos=getCurrentTodos(); if(todos.length===0){list.innerHTML='<div class="empty-state">📝 No tasks yet. Add one above!</div>';return;} list.innerHTML=''; todos.forEach(t=>{let li=document.createElement('li');li.className=`todo-item ${t.completed?'completed':''}`;li.innerHTML=`<input type="checkbox" ${t.completed?'checked':''} onclick="toggleTodo(${t.id})"><label onclick="toggleTodo(${t.id})">${escapeHtml(t.text)}</label><button class="delete-todo" onclick="deleteTodo(${t.id})">✕</button>`;list.appendChild(li);}); }
-function addTodo(){ let i=document.getElementById('newTodoInput'), t=i.value.trim(); if(!t)return; getCurrentTodos().unshift({id:Date.now(),text:t,completed:false}); saveCurrentData(); renderTodos(); i.value=''; updateStats(); }
-function toggleTodo(id){ let t=getCurrentTodos().find(t=>t.id===id); if(t){t.completed=!t.completed; saveCurrentData(); renderTodos(); updateStats();} }
-function deleteTodo(id){ let t=getCurrentTodos().find(t=>t.id===id); if(t&&confirm(`Delete "${t.text}"?`)){ allTodos[getCurrentDateKey()]=getCurrentTodos().filter(t=>t.id!==id); saveCurrentData(); renderTodos(); updateStats();} }
+function changeDate(d) {
+    currentDisplayDate.setDate(currentDisplayDate.getDate() + d);
+    updateDashboardDateDisplay();
+    renderTodos();
+    renderHabits();
+    renderBrainDumps();
+    updateStats();
+}
 
-function renderHabits(){ let tracker=document.getElementById('habitTracker'); let habits=getCurrentHabits(); if(habits.length===0){tracker.innerHTML='<div class="empty-state">✅ No habits yet. Add one below!</div>';return;} tracker.innerHTML=''; habits.forEach(h=>{let div=document.createElement('div');div.className='habit-item';div.innerHTML=`<span class="habit-name">${escapeHtml(h.name)}</span><input type="checkbox" class="habit-check" ${h.completed?'checked':''} onchange="toggleHabit(${h.id})"><button class="delete-habit" onclick="deleteHabit(${h.id})">✕</button>`;tracker.appendChild(div);}); }
-function addHabit(){ let i=document.getElementById('newHabitInput'), n=i.value.trim(); if(!n)return; getCurrentHabits().push({id:Date.now(),name:n,completed:false}); saveCurrentData(); renderHabits(); i.value=''; updateStats(); }
-function toggleHabit(id){ let h=getCurrentHabits().find(h=>h.id===id); if(h){h.completed=!h.completed; saveCurrentData(); renderHabits(); updateStats();} }
-function deleteHabit(id){ let h=getCurrentHabits().find(h=>h.id===id); if(h&&confirm(`Delete "${h.name}"?`)){ allHabits[getCurrentDateKey()]=getCurrentHabits().filter(h=>h.id!==id); saveCurrentData(); renderHabits(); updateStats();} }
+function goToTodayDashboard() {
+    currentDisplayDate = new Date();
+    updateDashboardDateDisplay();
+    renderTodos();
+    renderHabits();
+    renderBrainDumps();
+    updateStats();
+}
 
-function renderBrainDumps(){ let c=document.getElementById('dumpList'); let d=getCurrentDumps(); if(d.length===0){c.innerHTML='<div class="empty-state">💭 No brain dumps yet. Write something above!</div>';return;} c.innerHTML=''; d.slice().reverse().forEach(d=>{let div=document.createElement('div');div.className='dump-item';div.innerHTML=`<div class="dump-text">${escapeHtml(d.text)}</div><div class="dump-meta"><span>${new Date(d.timestamp).toLocaleTimeString()}</span><div class="dump-buttons"><button class="dump-convert" onclick="convertToTask(${d.id})">📋 Convert to Task</button><button class="dump-delete" onclick="deleteBrainDump(${d.id})">🗑️ Delete</button></div></div>`;c.appendChild(div);}); }
-function saveBrainDump(){ let t=document.getElementById('dumpText').value.trim(); if(!t)return; getCurrentDumps().push({id:Date.now(),text:t,timestamp:new Date().toISOString()}); saveCurrentData(); renderBrainDumps(); document.getElementById('dumpText').value=''; }
-function deleteBrainDump(id){ allBrainDumps[getCurrentDateKey()]=getCurrentDumps().filter(d=>d.id!==id); saveCurrentData(); renderBrainDumps(); }
-function convertToTask(id){ let d=getCurrentDumps().find(d=>d.id===id); if(d){ getCurrentTodos().unshift({id:Date.now(),text:d.text,completed:false}); saveCurrentData(); renderTodos(); deleteBrainDump(id); alert('Converted to task!'); } }
+function updateDashboardDateDisplay() {
+    let el = document.getElementById('dashboardDateDisplay');
+    let isToday = currentDisplayDate.toDateString() === new Date().toDateString();
+    el.innerText = isToday ? "Today" : currentDisplayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    document.getElementById('tasksHeader').innerText = isToday ? "Today's Tasks" : "Tasks for " + currentDisplayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    document.getElementById('habitsHeader').innerText = isToday ? "Today's Habits" : "Habits for " + currentDisplayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
-function calculateStreak(){ let h=JSON.parse(localStorage.getItem('slate_streak_history')||'{}'); let t=new Date(); t.setHours(0,0,0,0); let k=getDateKey(t); let c=(allTodos[k]||[]).filter(t=>t.completed).length+(allHabits[k]||[]).filter(h=>h.completed).length; h[k]=c>0; localStorage.setItem('slate_streak_history',JSON.stringify(h)); let s=0,d=new Date(t); while(true){ let key=getDateKey(d); if(h[key]===true){s++; d.setDate(d.getDate()-1);}else break;} return s; }
-function updateStats(){ let ct=getCurrentTodos().filter(t=>t.completed).length; let ch=getCurrentHabits().filter(h=>h.completed).length; let total=getCurrentTodos().length+getCurrentHabits().length; let rate=total===0?0:Math.round(((ct+ch)/total)*100); let streak=calculateStreak(); document.getElementById('tasksCompleted').innerText=ct; document.getElementById('habitsCompleted').innerText=ch; document.getElementById('completionRate').innerText=rate+'%'; document.getElementById('streakCount').innerText=streak; let msg=document.getElementById('streakMessage'); if(streak===0)msg.innerHTML='🌱 Complete tasks or habits to start your streak!'; else if(streak===1)msg.innerHTML=`🔥 ${streak} day streak! Keep it going tomorrow!`; else if(streak<7)msg.innerHTML=`🔥 ${streak} day streak! You\'re building momentum!`; else msg.innerHTML=`🏆 ${streak} day streak! Amazing consistency!`; }
-function resetDaily(){ if(confirm('Reset all tasks and habits for this day?')){ allTodos[getCurrentDateKey()]=[]; allHabits[getCurrentDateKey()]=[]; saveCurrentData(); renderTodos(); renderHabits(); updateStats(); alert('Reset complete!'); } }
+function switchTab(t) {
+    document.getElementById('dashboardTab').style.display = t === 'dashboard' ? 'block' : 'none';
+    document.getElementById('calendarTab').style.display = t === 'calendar' ? 'block' : 'none';
+    document.getElementById('braindumpTab').style.display = t === 'braindump' ? 'block' : 'none';
+    let ms = { dashboard: 'Track tasks, build habits, and stay productive.', calendar: 'Plan your week with events and reminders.', braindump: 'Capture ideas, thoughts, and random notes.' };
+    document.getElementById('bannerSub').innerText = ms[t];
+    if (t === 'calendar') renderCalendar();
+    if (t === 'braindump') renderBrainDumps();
+    let btns = document.querySelectorAll('.tab-btn');
+    btns.forEach((b, i) => { b.classList.remove('active'); if (t === 'dashboard' && i === 0) b.classList.add('active'); if (t === 'calendar' && i === 1) b.classList.add('active'); if (t === 'braindump' && i === 2) b.classList.add('active'); });
+}
 
-function openShareModal(){ let ct=getCurrentTodos().filter(t=>t.completed).length; let ch=getCurrentHabits().filter(h=>h.completed).length; let streak=calculateStreak(); document.getElementById('shareTasks').innerText=ct; document.getElementById('shareHabits').innerText=ch; document.getElementById('shareStreak').innerText=streak; document.getElementById('shareModal').classList.add('active'); }
-function closeShareModal(){ document.getElementById('shareModal').classList.remove('active'); }
-function setCardColor(bg,tc){ currentCardBg=bg; currentCardTextColor=tc; let p=document.getElementById('shareCardPreview'); p.style.backgroundColor=bg; p.style.color=tc; }
-function setCardTextColor(c){ currentCardTextColor=c; document.getElementById('shareCardPreview').style.color=c; }
-function downloadShareCard(){ html2canvas(document.getElementById('shareCardPreview'),{scale:2,backgroundColor:currentCardBg}).then(c=>{let a=document.createElement('a');a.download='slate_progress.png';a.href=c.toDataURL();a.click();}); }
+// ========== TODOS ==========
+function renderTodos() {
+    let list = document.getElementById('todoList');
+    let todos = getCurrentTodos();
+    if (todos.length === 0) { list.innerHTML = '<div class="empty-state">📝 No tasks yet. Add one above!</div>'; return; }
+    list.innerHTML = '';
+    todos.forEach(t => {
+        let li = document.createElement('li');
+        li.className = `todo-item ${t.completed ? 'completed' : ''}`;
+        li.innerHTML = `<input type="checkbox" ${t.completed ? 'checked' : ''} onclick="toggleTodo('${t.id}')"><label onclick="toggleTodo('${t.id}')">${escapeHtml(t.text)}</label><button class="delete-todo" onclick="deleteTodo('${t.id}')">✕</button>`;
+        list.appendChild(li);
+    });
+}
 
-function loadEvents(){ let s=localStorage.getItem('slate_events'); events=s?JSON.parse(s):[]; if(events.length===0){let t=new Date();events.push({id:Date.now(),title:'Team Meeting',type:'meeting',start:new Date(t.getFullYear(),t.getMonth(),t.getDate(),14,0).toISOString(),end:new Date(t.getFullYear(),t.getMonth(),t.getDate(),15,0).toISOString(),description:'',reminder:null});saveEvents();}renderCalendar();startReminderChecker(); }
-function saveEvents(){ localStorage.setItem('slate_events',JSON.stringify(events)); }
-function renderCalendar(){ if(currentView==='week')renderWeekView(); else renderMonthView(); updateDateDisplay(); }
-function renderWeekView(){ let start=new Date(currentViewDate); start.setDate(currentViewDate.getDate()-currentViewDate.getDay()); let header=document.getElementById('weekHeader'); header.innerHTML='<div class="week-header-cell"></div>'; for(let i=0;i<7;i++){let day=new Date(start);day.setDate(start.getDate()+i);let isToday=day.toDateString()===new Date().toDateString();header.innerHTML+=`<div class="week-header-cell"><div class="week-header-day">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]}</div><div style="font-size:20px;font-weight:600;${isToday?'color:var(--accent);':''}">${day.getDate()}</div></div>`;} let body=document.getElementById('weekBody'); body.innerHTML=''; for(let hour=0;hour<24;hour++){let row=document.createElement('div');row.className='week-row';row.innerHTML=`<div class="week-hour">${hour.toString().padStart(2,'0')}:00</div>`; for(let i=0;i<7;i++){let day=new Date(start);day.setDate(start.getDate()+i);day.setHours(hour,0,0);let cell=document.createElement('div');cell.className='week-cell';cell.onclick=()=>openAddEventModal(day); let dayEvents=events.filter(e=>{let d=new Date(e.start);return d.toDateString()===day.toDateString()&&d.getHours()===hour;}); dayEvents.forEach(e=>{let ev=document.createElement('div');ev.className=`event-card ${e.type}`;ev.textContent=e.title;ev.onclick=(evt)=>{evt.stopPropagation();openEditEventModal(e);};cell.appendChild(ev);}); row.appendChild(cell);} body.appendChild(row);} }
-function renderMonthView(){ let y=currentViewDate.getFullYear(),m=currentViewDate.getMonth(); let fd=new Date(y,m,1),sd=fd.getDay(),dim=new Date(y,m+1,0).getDate(),pd=new Date(y,m,0).getDate(); let header=document.getElementById('monthHeader'); header.innerHTML=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="month-header-cell">${d}</div>`).join(''); let grid=document.getElementById('monthGrid'); grid.innerHTML=''; for(let i=0;i<42;i++){let dn=i-sd+1,isCur=dn>0&&dn<=dim,dis=isCur?dn:(dn<=0?pd+dn:dn-dim);let dayDiv=document.createElement('div');dayDiv.className=`month-day ${!isCur?'other-month':''}`; let today=new Date(); if(isCur&&dn===today.getDate()&&m===today.getMonth()&&y===today.getFullYear())dayDiv.classList.add('today'); dayDiv.onclick=()=>{if(isCur)openAddEventModal(new Date(y,m,dn));}; dayDiv.innerHTML=`<div class="day-number">${dis}</div>`; if(isCur){let dayEvents=events.filter(e=>{let d=new Date(e.start);return d.getDate()===dn&&d.getMonth()===m&&d.getFullYear()===y;}); dayEvents.slice(0,2).forEach(e=>{let ev=document.createElement('div');ev.className=`event-card ${e.type}`;ev.textContent=e.title.length>15?e.title.slice(0,12)+'...':e.title;ev.onclick=(evt)=>{evt.stopPropagation();openEditEventModal(e);};dayDiv.appendChild(ev);}); if(dayEvents.length>2){let more=document.createElement('div');more.className='event-card';more.style.background='var(--muted)';more.textContent=`+${dayEvents.length-2} more`;more.onclick=(evt)=>{evt.stopPropagation();alert(dayEvents.map(e=>`• ${e.title}`).join('\n'));};dayDiv.appendChild(more);}} grid.appendChild(dayDiv);} }
-function previousPeriod(){ if(currentView==='week')currentViewDate.setDate(currentViewDate.getDate()-7); else currentViewDate.setMonth(currentViewDate.getMonth()-1); renderCalendar(); }
-function nextPeriod(){ if(currentView==='week')currentViewDate.setDate(currentViewDate.getDate()+7); else currentViewDate.setMonth(currentViewDate.getMonth()+1); renderCalendar(); }
-function goToToday(){ currentViewDate=new Date(); renderCalendar(); }
-function updateDateDisplay(){ let el=document.getElementById('currentDateDisplay'); if(currentView==='week'){let s=new Date(currentViewDate);s.setDate(currentViewDate.getDate()-currentViewDate.getDay());let e=new Date(s);e.setDate(s.getDate()+6);el.innerText=`${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} - ${e.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;}else el.innerText=currentViewDate.toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
-function openAddEventModal(date=null){ editingEventId=null; document.getElementById('modalTitle').innerText='Add Event'; document.getElementById('eventTitle').value=''; document.getElementById('eventType').value='work'; document.getElementById('eventDescription').value=''; document.getElementById('enableReminder').checked=false; document.getElementById('reminderTimeDiv').classList.remove('active'); let now=new Date(); now.setMinutes(0); let later=new Date(now); later.setHours(now.getHours()+1); document.getElementById('eventStart').value=now.toISOString().slice(0,16); document.getElementById('eventEnd').value=later.toISOString().slice(0,16); document.getElementById('eventModal').classList.add('active'); }
-function openEditEventModal(e){ editingEventId=e.id; document.getElementById('modalTitle').innerText='Edit Event'; document.getElementById('eventTitle').value=e.title; document.getElementById('eventType').value=e.type; document.getElementById('eventDescription').value=e.description||''; document.getElementById('eventStart').value=e.start.slice(0,16); document.getElementById('eventEnd').value=e.end.slice(0,16); if(e.reminder){document.getElementById('enableReminder').checked=true;document.getElementById('reminderTimeDiv').classList.add('active');document.getElementById('reminderMinutes').value=e.reminder.minutes;}else{document.getElementById('enableReminder').checked=false;document.getElementById('reminderTimeDiv').classList.remove('active');} document.getElementById('eventModal').classList.add('active'); }
-function closeEventModal(){ document.getElementById('eventModal').classList.remove('active'); editingEventId=null; }
-function saveEvent(){ let title=document.getElementById('eventTitle').value.trim(); if(!title){alert('Enter event title');return;} let reminder=null; if(document.getElementById('enableReminder').checked){reminder={minutes:parseInt(document.getElementById('reminderMinutes').value),sent:false};} let data={id:editingEventId||Date.now(),title:title,type:document.getElementById('eventType').value,start:document.getElementById('eventStart').value,end:document.getElementById('eventEnd').value,description:document.getElementById('eventDescription').value,reminder:reminder}; if(editingEventId){let idx=events.findIndex(e=>e.id===editingEventId);if(idx!==-1)events[idx]=data;}else events.push(data); saveEvents(); closeEventModal(); renderCalendar(); }
-function startReminderChecker(){ if(reminderCheckInterval)clearInterval(reminderCheckInterval); reminderCheckInterval=setInterval(checkReminders,60000); }
-async function checkReminders(){ if(!currentUser)return; let now=new Date(); for(let e of events){ if(e.reminder && !e.reminder.sent){ let eventTime=new Date(e.start); let reminderTime=new Date(eventTime.getTime()-(e.reminder.minutes*60000)); if(now>=reminderTime && now<eventTime){ await sendEmailReminder(e,currentUser.email); e.reminder.sent=true; saveEvents(); } } } }
-async function sendEmailReminder(event,userEmail){ let eventDate=new Date(event.start); let params={to_email:userEmail,event_title:event.title,event_date:eventDate.toLocaleDateString(),event_time:eventDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),event_description:event.description||'No description'}; try{ await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,params); console.log('Reminder sent to:',userEmail); } catch(e){ console.error('Failed to send reminder:',e); } }
-document.getElementById('enableReminder').addEventListener('change',function(){ if(this.checked)document.getElementById('reminderTimeDiv').classList.add('active'); else document.getElementById('reminderTimeDiv').classList.remove('active'); });
-function escapeHtml(t){ let d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
-function toggleTheme(){ let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); localStorage.setItem('slate_theme',t); document.getElementById('themeToggle').innerHTML=t==='dark'?'☀️ Light':'🌙 Dark'; }
-function loadTheme(){ let s=localStorage.getItem('slate_theme'); if(s)document.documentElement.setAttribute('data-theme',s); document.getElementById('themeToggle').innerHTML=(s==='dark'?'☀️ Light':'🌙 Dark'); }
-function init(){ loadTheme(); loadUser(); loadDataForDate(getCurrentDateKey()); loadEvents(); renderTodos(); renderHabits(); renderBrainDumps(); updateStats(); updateDashboardDateDisplay(); switchTab('dashboard'); }
-init();
-window.switchTab=switchTab; window.changeDate=changeDate; window.goToTodayDashboard=goToTodayDashboard; window.addTodo=addTodo; window.toggleTodo=toggleTodo; window.deleteTodo=deleteTodo; window.addHabit=addHabit; window.toggleHabit=toggleHabit; window.deleteHabit=deleteHabit; window.saveBrainDump=saveBrainDump; window.deleteBrainDump=deleteBrainDump; window.convertToTask=convertToTask; window.resetDaily=resetDaily; window.openShareModal=openShareModal; window.closeShareModal=closeShareModal; window.setCardColor=setCardColor; window.setCardTextColor=setCardTextColor; window.downloadShareCard=downloadShareCard; window.logout=logout; window.toggleTheme=toggleTheme; window.previousPeriod=previousPeriod; window.nextPeriod=nextPeriod; window.goToToday=goToToday; window.openAddEventModal=openAddEventModal; window.closeEventModal=closeEventModal; window.saveEvent=saveEvent; window.performSearch=performSearch;
+async function addTodo() {
+    let input = document.getElementById('newTodoInput');
+    let text = input.value.trim();
+    if (!text) return;
+    let todos = getCurrentTodos();
+    let newId = Date.now().toString();
+    let newTodo = { id: newId, text: text, completed: false };
+    todos.push(newTodo);
+    await saveTodoToFirestore(getCurrentDateKey(), newTodo);
+    renderTodos();
+    input.value = '';
+    updateStats();
+}
+
+async function toggleTodo(id) {
+    let todos = getCurrentTodos();
+    let t = todos.find(t => t.id === id);
+    if (t) {
+        t.completed = !t.completed;
+        await saveTodoToFirestore(getCurrentDateKey(), t);
+        renderTodos();
+        updateStats();
+    }
+}
+
+async function deleteTodo(id) {
+    let t = getCurrentTodos().find(t => t.id === id);
+    if (t && confirm(`Delete "${t.text}"?`)) {
+        let filtered = getCurrentTodos().filter(t => t.id !== id);
+        let dateKey = getCurrentDateKey();
+        allTodos[dateKey] = filtered;
+        await deleteTodoFromFirestore(id);
+        renderTodos();
+        updateStats();
+    }
+}
+
+// ========== HABITS ==========
+function renderHabits() {
+    let tracker = document.getElementById('habitTracker');
+    let habits = getCurrentHabits();
+    if (habits.length === 0) { tracker.innerHTML = '<div class="empty-state">✅ No habits yet. Add one below!</div>'; return; }
+    tracker.innerHTML = '';
+    habits.forEach(h => {
+        let div = document.createElement('div');
+        div.className = 'habit-item';
+        div.innerHTML = `<span class="habit-name">${escapeHtml(h.name)}</span><input type="checkbox" class="habit-check" ${h.completed ? 'checked' : ''} onchange="toggleHabit('${h.id}')"><button class="delete-habit" onclick="deleteHabit('${h.id}')">✕</button>`;
+        tracker.appendChild(div);
+    });
+}
+
+async function addHabit() {
+    let input = document.getElementById('newHabitInput');
+    let name = input.value.trim();
+    if (!name) return;
+    let habits = getCurrentHabits();
+    let newId = Date.now().toString();
+    let newHabit = { id: newId, name: name, completed: false };
+    habits.push(newHabit);
+    await saveHabitToFirestore(getCurrentDateKey(), newHabit);
+    renderHabits();
+    input.value = '';
+    updateStats();
+}
+
+async function toggleHabit(id) {
+    let habits = getCurrentHabits();
+    let h = habits.find(h => h.id === id);
+    if (h) {
+        h.completed = !h.completed;
+        await saveHabitToFirestore(getCurrentDateKey(), h);
+        renderHabits();
+        updateStats();
+    }
+}
+
+async function deleteHabit(id) {
+    let h = getCurrentHabits().find(h => h.id === id);
+    if (h && confirm(`Delete "${h.name}"?`)) {
+        let filtered = getCurrentHabits().filter(h => h.id !== id);
+        let dateKey = getCurrentDateKey();
+        allHabits[dateKey] = filtered;
+        await deleteHabitFromFirestore(id);
+        renderHabits();
+        updateStats();
+    }
+}
+
+// ========== BRAIN DUMPS ==========
+function renderBrainDumps() {
+    let c = document.getElementById('dumpList');
+    let d = getCurrentDumps();
+    if (d.length === 0) { c.innerHTML = '<div class="empty-state">💭 No brain dumps yet. Write something above!</div>'; return; }
+    c.innerHTML = '';
+    d.slice().reverse().forEach(d => {
+        let div = document.createElement('div');
+        div.className = 'dump-item';
+        div.innerHTML = `<div class="dump-text">${escapeHtml(d.text)}</div><div class="dump-meta"><span>${new Date(d.timestamp).toLocaleTimeString()}</span><div class="dump-buttons"><button class="dump-convert" onclick="convertToTask('${d.id}')">📋 Convert to Task</button><button class="dump-delete" onclick="deleteBrainDump('${d.id}')">🗑️ Delete</button></div></div>`;
+        c.appendChild(div);
+    });
+}
+
+async function saveBrainDump() {
+    let text = document.getElementById('dumpText').value.trim();
+    if (!text) return;
+    let dumps = getCurrentDumps();
+    let newId = Date.now().toString();
+    let newDump = { id: newId, text: text, timestamp: new Date().toISOString() };
+    dumps.push(newDump);
+    await saveDumpToFirestore(getCurrentDateKey(), newDump);
+    renderBrainDumps();
+    document.getElementById('dumpText').value = '';
+}
+
+async function deleteBrainDump(id) {
+    let filtered = getCurrentDumps().filter(d => d.id !== id);
+    let dateKey = getCurrentDateKey();
+    allBrainDumps[dateKey] = filtered;
+    await deleteDumpFromFirestore(id);
+    renderBrainDumps();
+}
+
+async function convertToTask(id) {
+    let d = getCurrentDumps().find(d => d.id === id);
+    if (d) {
+        let todos = getCurrentTodos();
+        let newId = Date.now().toString();
+        let newTodo = { id: newId, text: d.text, completed: false };
+        todos.push(newTodo);
+        await saveTodoToFirestore(getCurrentDateKey(), newTodo);
+        renderTodos();
+        await deleteBrainDump(id);
+        alert('Converted to task!');
+        updateStats();
+    }
+}
+
+// ========== STATS & STREAK ==========
+function calculateStreak() {
+    let history = JSON.parse(localStorage.getItem('slate_streak_history') || '{}');
+    let today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let todayKey = getDateKey(today);
+    let todayTodos = allTodos[todayKey] || [];
+    let todayHabits = allHabits[todayKey] || [];
+    let completedToday = todayTodos.filter(t => t.completed).length + todayHabits.filter(h => h.completed).length;
+    history[todayKey] = completedToday > 0;
+    localStorage.setItem('slate_streak_history', JSON.stringify(history));
+    let streak = 0, checkDate = new Date(today);
+    while (true) {
+        let key = getDateKey(checkDate);
+        if (history[key] === true) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+        else break;
+    }
+    return streak;
+}
+
+function updateStats() {
+    let ct = getCurrentTodos().filter(t => t.completed).length;
+    let ch = getCurrentHabits().filter(h => h.completed).length;
+    let total = getCurrentTodos().length + getCurrentHabits().length;
+    let rate = total === 0 ? 0 : Math.round(((ct + ch) / total) * 100);
+    let streak = calculateStreak();
+    document.getElementById('tasksCompleted').innerText = ct;
+    document.getElementById('habitsCompleted').innerText = ch;
+    document.getElementById('completionRate').innerText = rate + '%';
+    document.getElementById('streakCount').innerText = streak;
+    let msg = document.getElementById('streakMessage');
+    if (streak === 0) msg.innerHTML = '🌱 Complete tasks or habits to start your streak!';
+    else if (streak === 1) msg.innerHTML = `🔥 ${streak} day streak! Keep it going tomorrow!`;
+    else if (streak < 7) msg.innerHTML = `🔥 ${streak} day streak! You're building momentum!`;
+    else msg.innerHTML = `🏆 ${streak} day streak! Amazing consistency!`;
+}
+
+async function resetDaily() {
+    if (confirm('Reset all tasks and habits for this day?')) {
+        let dateKey = getCurrentDateKey();
+        let todos = getCurrentTodos();
+        for (let todo of todos) {
+            await deleteTodoFromFirestore(todo.id);
+        }
+        let habits = getCurrentHabits();
+        for (let habit of habits) {
+            await deleteHabitFromFirestore(habit.id);
+        }
+        allTodos[dateKey] = [];
+        allHabits[dateKey] = [];
+        renderTodos();
+        renderHabits();
+        updateStats();
+        alert('Reset complete!');
+    }
+}
+
+// ========== SHARE CARD ==========
+function openShareModal() {
+    let ct = getCurrentTodos().filter(t => t.completed).length;
+    let ch = getCurrentHabits().filter(h => h.completed).length;
+    let streak = calculateStreak();
+    document.getElementById('shareTasks').innerText = ct;
+    document.getElementById('shareHabits').innerText = ch;
+    document.getElementById('shareStreak').innerText = streak;
+    document.getElementById('shareModal').classList.add('active');
+}
+function closeShareModal() { document.getElementById('shareModal').classList.remove('active'); }
+function setCardColor(bg, tc) { currentCardBg = bg; currentCardTextColor = tc; let p = document.getElementById('shareCardPreview'); p.style.backgroundColor = bg; p.style.color = tc; }
+function setCardTextColor(c) { currentCardTextColor = c; document.getElementById('shareCardPreview').style.color = c; }
+function downloadShareCard() { html2canvas(document.getElementById('shareCardPreview'), { scale: 2, backgroundColor: currentCardBg }).then(c => { let a = document.createElement('a'); a.download = 'slate_progress.png'; a.href = c.toDataURL(); a.click(); }); }
+
+// ========== CALENDAR ==========
+async function saveEvent() {
+    let title = document.getElementById('eventTitle').value.trim();
+    if (!title) { alert('Enter event title'); return; }
+    let reminder = null;
+    if (document.getElementById('enableReminder').checked) {
+        reminder = { minutes: parseInt(document.getElementById('reminderMinutes').value), sent: false };
+    }
+    let data = {
+        id: editingEventId || Date.now().toString(),
+        title: title,
+        type: document.getElementById('eventType').value,
+        start: document.getElementById('eventStart').value,
+        end: document.getElementById('eventEnd').value,
+        description: document.getElementById('eventDescription').value,
+        reminder: reminder
+    };
+    if (editingEventId) {
+        let idx = events.findIndex(e => e.id === editingEventId);
+        if (idx !== -1) events[idx] = data;
+    } else {
+        events.push(data);
+    }
+    await saveEventToFirestore(data);
+    closeEventModal();
+    renderCalendar();
+}
+
+async function deleteEvent(eventId) {
+    if (confirm('Delete this event?')) {
+        events = events.filter(e => e.id !== eventId);
+        await deleteEventFromFirestore(eventId);
+        renderCalendar();
+    }
+}
+
+function renderCalendar() {
+    if (currentView === 'week') renderWeekView();
+    else renderMonthView();
+    updateDateDisplay();
+}
+
+function renderWeekView() {
+    let start = new Date(currentViewDate);
+    start.setDate(currentViewDate.getDate() - currentViewDate.getDay());
+    let header = document.getElementById('weekHeader');
+    header.innerHTML = '<div class="week-header-cell"></div>';
+    for (let i = 0; i < 7; i++) {
+        let day = new Date(start);
+        day.setDate(start.getDate() + i);
+        let isToday = day.toDateString() === new Date().toDateString();
+        header.innerHTML += `<div class="week-header-cell"><div class="week-header-day">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</div><div style="font-size:20px;font-weight:600;${isToday ? 'color:var(--accent);' : ''}">${day.getDate()}</div></div>`;
+    }
+    let body = document.getElementById('weekBody');
+    body.innerHTML = '';
+    for (let hour = 0; hour < 24; hour++) {
+        let row = document.createElement('div');
+        row.className = 'week-row';
+        row.innerHTML = `<div class="week-hour">${hour.toString().padStart(2, '0')}:00</div>`;
+        for (let i = 0; i < 7; i++) {
+            let day = new Date(start);
+            day.setDate(start.getDate() + i);
+            day.setHours(hour, 0, 0);
+            let cell = document.createElement('div');
+            cell.className = 'week-cell';
+            cell.onclick = () => openAddEventModal(day);
+            let dayEvents = events.filter(e => {
+                let d = new Date(e.start);
+                return d.toDateString() === day.toDateString() && d.getHours() === hour;
+            });
+            dayEvents.forEach(e => {
+                let ev = document.createElement('div');
+                ev.className = `event-card ${e.type}`;
+                ev.textContent = e.title;
+                ev.onclick = (evt) => { evt.stopPropagation(); openEditEventModal(e); };
+                cell.appendChild(ev);
+            });
+            row.appendChild(cell);
+        }
+        body.appendChild(row);
+    }
+}
+
+function renderMonthView() {
+    let y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
+    let fd = new Date(y, m, 1), sd = fd.getDay(), dim = new Date(y, m + 1, 0).getDate(), pd = new Date(y, m, 0).getDate();
+    let header = document.getElementById('monthHeader');
+    header.innerHTML = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="month-header-cell">${d}</div>`).join('');
+    let grid = document.getElementById('monthGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 42; i++) {
+        let dn = i - sd + 1, isCur = dn > 0 && dn <= dim, dis = isCur ? dn : (dn <= 0 ? pd + dn : dn - dim);
+        let dayDiv = document.createElement('div');
+        dayDiv.className = `month-day ${!isCur ? 'other-month' : ''}`;
+        let today = new Date();
+        if (isCur && dn === today.getDate() && m === today.getMonth() && y === today.getFullYear()) dayDiv.classList.add('today');
+        dayDiv.onclick = () => { if (isCur) openAddEventModal(new Date(y, m, dn)); };
+        dayDiv.innerHTML = `<div class="day-number">${dis}</div>`;
+        if (isCur) {
+            let dayEvents = events.filter(e => {
+                let d = new Date(e.start);
+                return d.getDate() === dn && d.getMonth() === m && d.getFullYear() === y;
+            });
+            dayEvents.slice(0, 2).forEach(e => {
+                let ev = document.createElement('div');
+                ev.className = `event-card ${e.type}`;
+                ev.textContent = e.title.length > 15 ? e.title.slice(0, 12) + '...' : e.title;
+                ev.onclick = (evt) => { evt.stopPropagation(); openEditEventModal(e); };
+                dayDiv.appendChild(ev);
+            });
+            if (dayEvents.length > 2) {
+                let more = document.createElement('div');
+                more.className = 'event-card';
+                more.style.background = 'var(--muted)';
+                more.textContent = `+${dayEvents.length - 2} more`;
+                more.onclick = (evt) => { evt.stopPropagation(); alert(dayEvents.map(e => `• ${e.title}`).join('\n')); };
+                dayDiv.appendChild(more);
+            }
+        }
+        grid.appendChild(dayDiv);
+    }
+}
+
+function previousPeriod() {
+    if (currentView === 'week') currentViewDate.setDate(currentViewDate.getDate() - 7);
+    else currentViewDate.setMonth(currentViewDate.getMonth() - 1);
+    renderCalendar();
+}
+function nextPeriod() {
+    if (currentView === 'week') currentViewDate.setDate(currentViewDate.getDate() + 7);
+    else currentViewDate.setMonth(currentViewDate.getMonth() + 1);
+    renderCalendar();
+}
+function goToToday() { currentViewDate = new Date(); renderCalendar(); }
+function updateDateDisplay() {
+    let el = document.getElementById('currentDateDisplay');
+    if (currentView === 'week') {
+        let s = new Date(currentViewDate);
+        s.setDate(currentViewDate.getDate() - currentViewDate.getDay());
+        let e = new Date(s);
+        e.setDate(s.getDate() + 6);
+        el.innerText = `${s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${e.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else {
+        el.innerText = currentViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+}
+function openAddEventModal(date = null) {
+    editingEventId = null;
+    document.getElementById('modalTitle').innerText = 'Add Event';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventType').value = 'work';
+    document.getElementById('eventDescription').value = '';
+    document.getElementById('enableReminder').checked = false;
+    document.getElementById('reminderTimeDiv').classList.remove('active');
+    let now = new Date();
+    now.setMinutes(0);
+    let later = new Date(now);
+    later.setHours(now.getHours() + 1);
+    document.getElementById('eventStart').value = now.toISOString().slice(0, 16);
+    document.getElementById('eventEnd').value = later.toISOString().slice(0, 16);
+    if (date) {
+        let start = new Date(date);
+        start.setHours(9, 0);
+        let end = new Date(date);
+        end.setHours(10, 0);
+        document.getElementById('eventStart').value = start.toISOString().slice(0, 16);
+        document.getElementById('eventEnd').value = end.toISOString().slice(0, 16);
+    }
+    document.getElementById('eventModal').classList.add('active');
+}
+function openEditEventModal(e) {
+    editingEventId = e.id;
+    document.getElementById('modalTitle').innerText = 'Edit Event';
+    document.getElementById('eventTitle').value = e.title;
+    document.getElementById('eventType').value = e.type;
+    document.getElementById('eventDescription').value = e.description || '';
+    document.getElementById('eventStart').value = e.start.slice(0, 16);
+    document.getElementById('eventEnd').value = e.end.slice(0, 16);
+    if (e.reminder) {
+        document.getElementById('enableReminder').checked = true;
+        document.getElementById('reminderTimeDiv').classList.add('active');
+        document.getElementById('reminderMinutes').value = e.reminder.minutes;
+    } else {
+        document.getElementById('enableReminder').checked = false;
+        document.getElementById('reminderTimeDiv').classList.remove('active');
+    }
+    document.getElementById('eventModal').classList.add('active');
+}
+function closeEventModal() { document.getElementById('eventModal').classList.remove('active'); editingEventId = null; }
+document.getElementById('enableReminder').addEventListener('change', function () { if (this.checked) document.getElementById('reminderTimeDiv').classList.add('active'); else document.getElementById('reminderTimeDiv').classList.remove('active'); });
+
+// ========== UTILITIES ==========
+function escapeHtml(t) { let d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function toggleTheme() { let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', t); localStorage.setItem('slate_theme', t); document.getElementById('themeToggle').innerHTML = t === 'dark' ? '☀️ Light' : '🌙 Dark'; }
+function loadTheme() { let s = localStorage.getItem('slate_theme'); if (s) document.documentElement.setAttribute('data-theme', s); document.getElementById('themeToggle').innerHTML = (s === 'dark' ? '☀️ Light' : '🌙 Dark'); }
+loadTheme();
+getWeather();
+
+window.switchTab = switchTab;
+window.changeDate = changeDate;
+window.goToTodayDashboard = goToTodayDashboard;
+window.addTodo = addTodo;
+window.toggleTodo = toggleTodo;
+window.deleteTodo = deleteTodo;
+window.addHabit = addHabit;
+window.toggleHabit = toggleHabit;
+window.deleteHabit = deleteHabit;
+window.saveBrainDump = saveBrainDump;
+window.deleteBrainDump = deleteBrainDump;
+window.convertToTask = convertToTask;
+window.resetDaily = resetDaily;
+window.openShareModal = openShareModal;
+window.closeShareModal = closeShareModal;
+window.setCardColor = setCardColor;
+window.setCardTextColor = setCardTextColor;
+window.downloadShareCard = downloadShareCard;
+window.logout = logout;
+window.toggleTheme = toggleTheme;
+window.previousPeriod = previousPeriod;
+window.nextPeriod = nextPeriod;
+window.goToToday = goToToday;
+window.openAddEventModal = openAddEventModal;
+window.closeEventModal = closeEventModal;
+window.saveEvent = saveEvent;
+window.performSearch = performSearch;
 </script>
 </body>
 </html>
