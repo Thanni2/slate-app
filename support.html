@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-:root{--bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,.08);--text:#1a1a18;--muted:#9a9890;--accent:#2563eb;--tag:#f0ede6;--success:#10b981;}
+:root{--bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,.08);--text:#1a1a18;--muted:#9a9890;--accent:#2563eb;--tag:#f0ede6;}
 [data-theme="dark"]{--bg:#1a1a1a;--surface:#2d2d2d;--border:rgba(255,255,255,.1);--text:#e5e5e5;--muted:#9ca3af;--accent:#3b82f6;--tag:#3a3a3a;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .3s;min-height:100vh;display:flex;flex-direction:column;}
 nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:var(--bg);border-bottom:.5px solid var(--border);flex-wrap:wrap;gap:1rem;}
@@ -16,9 +16,8 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2
 .nav-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
 .nav-links a{text-decoration:none;font-size:13px;color:var(--muted);font-weight:500;}
 .nav-links a:hover{color:var(--text);}
-.nav-buttons{display:flex;gap:1rem;}
-.nav-cta{padding:8px 20px;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-size:13px;}
-.nav-login{padding:8px 20px;background:var(--surface);border:.5px solid var(--border);border-radius:10px;text-decoration:none;font-size:13px;color:var(--text);}
+.user-info{display:flex;gap:1rem;align-items:center;}
+.theme-toggle,.logout-btn{padding:6px 16px;background:var(--tag);border:.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);}
 .container{max-width:1000px;margin:0 auto;padding:2rem;flex:1;}
 .hero-section{text-align:center;margin-bottom:3rem;}
 .hero-section h1{font-family:'DM Serif Display',serif;font-size:clamp(32px,5vw,48px);margin-bottom:1rem;}
@@ -44,21 +43,22 @@ input,textarea{width:100%;padding:12px;border:.5px solid var(--border);border-ra
 footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
 .footer-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
-@media(max-width:768px){.contact-grid{grid-template-columns:1fr;} nav{padding:1rem;} .nav-links{order:2;width:100%;justify-content:center;}}
+@media(max-width:768px){.contact-grid{grid-template-columns:1fr;} nav{padding:1rem;}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <nav>
-<a href="index.html" class="logo">Sl<em>a</em>te</a>
+<a href="dashboard.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
-<a href="index.html">Home</a>
-<a href="index.html#features">Features</a>
-<a href="index.html#pricing">Pricing</a>
 <a href="dashboard.html">Dashboard</a>
+<a href="goals.html">Goals</a>
 </div>
-<div class="nav-buttons">
-<a href="login.html" class="nav-login">Sign in</a>
-<a href="signup.html" class="nav-cta">Get started</a>
+<div class="user-info">
+<span class="user-name" id="userNameDisplay">User</span>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+<button class="logout-btn" onclick="logout()">Sign out</button>
 </div>
 </nav>
 
@@ -70,25 +70,75 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;just
 </div>
 <div class="faq-section"><h2>Frequently Asked Questions</h2>
 <div class="faq-item"><div class="faq-question">How do I reset my password? <span class="faq-icon">+</span></div><div class="faq-answer">Click "Sign in" and select "Forgot password". Enter your email and follow the instructions.</div></div>
-<div class="faq-item"><div class="faq-question">Is my data backed up? <span class="faq-icon">+</span></div><div class="faq-answer">Data is saved locally. Pro users will get cloud backup soon. You can export your data anytime.</div></div>
-<div class="faq-item"><div class="faq-question">How do I upgrade to Pro? <span class="faq-icon">+</span></div><div class="faq-answer">Visit the Pricing section on our homepage and select "Start free trial".</div></div>
-<div class="faq-item"><div class="faq-question">Can I use Slate on my phone? <span class="faq-icon">+</span></div><div class="faq-answer">Yes! Slate is fully responsive and works on any device.</div></div>
+<div class="faq-item"><div class="faq-question">Is my data backed up? <span class="faq-icon">+</span></div><div class="faq-answer">Yes! Your data is stored in the cloud with Firebase. You can access it from any device.</div></div>
+<div class="faq-item"><div class="faq-question">Can I use Slate on my phone? <span class="faq-icon">+</span></div><div class="faq-answer">Yes! Slate is fully responsive and works on any device. You can also install it as a PWA.</div></div>
 </div>
 <div class="contact-form"><h2>Send us a message</h2><form id="supportForm"><div class="form-group"><label>Name</label><input type="text" id="name" required></div><div class="form-group"><label>Email</label><input type="email" id="email" required></div><div class="form-group"><label>Subject</label><input type="text" id="subject" required></div><div class="form-group"><label>Message</label><textarea id="message" rows="4" required></textarea></div><button type="submit" class="btn-submit">Send message →</button></form></div>
 </div>
 
 <footer>
-<a href="index.html" class="logo" style="font-size:18px">Sl<em>a</em>te</a>
-<div class="footer-links"><a href="index.html">Home</a><a href="login.html">Sign in</a><a href="signup.html">Sign up</a><a href="dashboard.html">Dashboard</a><a href="#">Privacy</a><a href="#">Terms</a></div>
+<a href="dashboard.html" class="logo" style="font-size:18px">Sl<em>a</em>te</a>
+<div class="footer-links"><a href="dashboard.html">Dashboard</a><a href="goals.html">Goals</a><a href="#">Privacy</a><a href="#">Terms</a></div>
 <div class="footer-copy">© 2026 Slate. All rights reserved.</div>
 </footer>
 
 <script>
-document.querySelectorAll('.faq-question').forEach(q=>{q.addEventListener('click',()=>{q.parentElement.classList.toggle('active');});});
-document.getElementById('supportForm').addEventListener('submit',function(e){e.preventDefault();let name=document.getElementById('name').value;let email=document.getElementById('email').value;let subject=document.getElementById('subject').value;let msg=document.getElementById('message').value;window.location.href=`mailto:thannibolaji@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${msg}`)}`;alert('Email client opened!');});
-function toggleTheme(){let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('slate_theme',t);}
-function loadTheme(){let s=localStorage.getItem('slate_theme');if(s)document.documentElement.setAttribute('data-theme',s);}
+const firebaseConfig = {
+  apiKey: "AIzaSyBe-shv8pxkhnyiEGmpK9RG7MoO0NFYQfY",
+  authDomain: "slate-app-a66f9.firebaseapp.com",
+  projectId: "slate-app-a66f9",
+  storageBucket: "slate-app-a66f9.firebasestorage.app",
+  messagingSenderId: "683853322128",
+  appId: "1:683853322128:web:ba3c8e4d7ee2c4f1494515",
+  measurementId: "G-FZLN9YF0VW"
+};
+firebase.initializeApp(firebaseConfig);
+
+// Check if user is logged in
+firebase.auth().onAuthStateChanged((user) => {
+    if (!user) {
+        window.location.href = 'login.html';
+        return;
+    }
+    document.getElementById('userNameDisplay').innerText = user.displayName?.split(' ')[0] || user.email.split('@')[0];
+});
+
+function logout() {
+    firebase.auth().signOut();
+    window.location.href = 'login.html';
+}
+
+document.querySelectorAll('.faq-question').forEach(q => {
+    q.addEventListener('click', () => {
+        q.parentElement.classList.toggle('active');
+    });
+});
+
+document.getElementById('supportForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let name = document.getElementById('name').value;
+    let email = document.getElementById('email').value;
+    let subject = document.getElementById('subject').value;
+    let msg = document.getElementById('message').value;
+    window.location.href = `mailto:thannibolaji@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${msg}`)}`;
+    alert('Email client opened!');
+});
+
+function toggleTheme() {
+    let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('slate_theme', t);
+    document.getElementById('themeToggle').innerHTML = t === 'dark' ? '☀️ Light' : '🌙 Dark';
+}
+function loadTheme() {
+    let s = localStorage.getItem('slate_theme');
+    if (s) document.documentElement.setAttribute('data-theme', s);
+    document.getElementById('themeToggle').innerHTML = (s === 'dark' ? '☀️ Light' : '🌙 Dark');
+}
 loadTheme();
+
+window.logout = logout;
+window.toggleTheme = toggleTheme;
 </script>
 </body>
 </html>
