@@ -13,13 +13,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);tra
 nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:var(--bg);border-bottom:.5px solid var(--border);flex-wrap:wrap;gap:1rem;}
 .logo{font-family:'DM Serif Display',serif;font-size:24px;text-decoration:none;color:var(--text);}
 .logo em{color:var(--accent);font-style:normal;}
-.nav-links{display:flex;gap:1.5rem;flex-wrap:wrap;}
-.nav-links a{text-decoration:none;font-size:13px;color:var(--muted);font-weight:500;}
-.nav-links a:hover{color:var(--text);}
-.nav-buttons{display:flex;gap:1rem;}
-.nav-cta{padding:8px 20px;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-size:13px;}
-.nav-login{padding:8px 20px;background:var(--surface);border:.5px solid var(--border);border-radius:10px;text-decoration:none;font-size:13px;color:var(--text);}
+.user-info{display:flex;gap:1rem;align-items:center;}
+.theme-toggle,.logout-btn{padding:6px 16px;background:var(--tag);border:.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text);}
 .container{max-width:1000px;margin:0 auto;padding:2rem;flex:1;}
+.tab-bar{display:flex;gap:.5rem;margin-bottom:2rem;border-bottom:1px solid var(--border);padding-bottom:1rem;flex-wrap:wrap;}
+.tab-btn{background:none;border:none;padding:8px 20px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:8px;transition:all .2s;}
+.tab-btn:hover{color:var(--text);background:var(--tag);}
+.tab-btn.active{color:var(--accent);background:var(--tag);}
 .goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
 .goal-header h1{font-family:'DM Serif Display',serif;font-size:32px;}
 .add-goal-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:500;}
@@ -53,22 +53,26 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;just
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
 @media(max-width:680px){.goals-grid{grid-template-columns:1fr;} .container{padding:1rem;}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <nav>
-<a href="index.html" class="logo">Sl<em>a</em>te</a>
-<div class="nav-links">
-<a href="index.html">Home</a>
-<a href="dashboard.html">Dashboard</a>
-<a href="support.html">Support</a>
-</div>
-<div class="nav-buttons">
-<a href="login.html" class="nav-login">Sign in</a>
-<a href="signup.html" class="nav-cta">Get started</a>
+<a href="dashboard.html" class="logo">Sl<em>a</em>te</a>
+<div class="user-info">
+<span class="user-name" id="userNameDisplay">User</span>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+<button class="logout-btn" onclick="logout()">Sign out</button>
 </div>
 </nav>
 
 <div class="container">
+<div class="tab-bar">
+<button class="tab-btn" onclick="window.location.href='dashboard.html'">Dashboard</button>
+<button class="tab-btn active" onclick="window.location.href='goals.html'">Goals</button>
+<button class="tab-btn" onclick="window.location.href='support.html'">Support</button>
+</div>
 <div class="goal-header"><h1>🎯 Your Goals</h1><button class="add-goal-btn" onclick="openModal()">+ New Goal</button></div>
 <div id="goalsGrid" class="goals-grid"></div>
 </div>
@@ -76,30 +80,178 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;just
 <div id="goalModal" class="modal"><div class="modal-content"><h3>Set a New Goal</h3><input type="text" id="goalTitle" placeholder="Goal title"><select id="goalCategory"><option value="Career">Career</option><option value="Health">Health</option><option value="Learning">Learning</option><option value="Personal">Personal</option><option value="Fitness">Fitness</option><option value="Finance">Finance</option></select><input type="number" id="goalTarget" placeholder="Target (e.g., 100)"><div class="modal-buttons"><button class="save-btn" onclick="saveGoal()">Save Goal</button><button class="cancel-btn" onclick="closeModal()">Cancel</button></div></div></div>
 
 <footer>
-<a href="index.html" class="logo" style="font-size:18px">Sl<em>a</em>te</a>
-<div class="footer-links"><a href="index.html">Home</a><a href="login.html">Sign in</a><a href="signup.html">Sign up</a><a href="dashboard.html">Dashboard</a><a href="support.html">Support</a></div>
+<a href="dashboard.html" class="logo" style="font-size:18px">Sl<em>a</em>te</a>
+<div class="footer-links"><a href="dashboard.html">Dashboard</a><a href="support.html">Support</a><a href="#">Privacy</a><a href="#">Terms</a></div>
 <div class="footer-copy">© 2026 Slate. All rights reserved.</div>
 </footer>
 
 <script>
-let goals=[];
-function loadUser(){let u=localStorage.getItem('slate_user');if(!u){document.getElementById('nav-buttons').innerHTML='<a href="login.html" class="nav-login">Sign in</a><a href="signup.html" class="nav-cta">Get started</a>';}else{let name=JSON.parse(u).name.split(' ')[0];document.querySelector('.nav-buttons').innerHTML=`<span style="font-size:13px;color:var(--muted);">${name}</span><a href="dashboard.html" class="nav-cta">Dashboard</a><a href="#" onclick="logout()" class="nav-login">Sign out</a>`;}}
-function logout(){localStorage.removeItem('slate_user');window.location.href='index.html';}
-function loadGoals(){let s=localStorage.getItem('slate_goals');goals=s?JSON.parse(s):[];renderGoals();}
-function saveGoals(){localStorage.setItem('slate_goals',JSON.stringify(goals));}
-function renderGoals(){let grid=document.getElementById('goalsGrid');if(goals.length===0){grid.innerHTML='<div class="empty-state">🎯 No goals yet. Click "New Goal" to start!</div>';return;}grid.innerHTML='';goals.forEach((goal,idx)=>{let progress=(goal.current/goal.target)*100;let card=document.createElement('div');card.className='goal-card';card.innerHTML=`<div class="goal-title">${escapeHtml(goal.title)}</div><div class="goal-category">${goal.category}</div><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div><div class="progress-stats"><span>${goal.current} / ${goal.target}</span><span>${Math.round(progress)}%</span></div><div class="progress-controls"><div class="slider-container"><input type="range" min="0" max="${goal.target}" value="${goal.current}" step="1" oninput="updateProgressFromSlider(${idx}, this.value)"></div><div class="number-input"><input type="number" id="progressInput_${idx}" value="${goal.current}" min="0" max="${goal.target}" step="1" onchange="updateProgressFromNumber(${idx}, this.value)"><span>/ ${goal.target}</span></div><div class="button-group"><button onclick="updateProgress(${idx}, -10)">-10</button><button onclick="updateProgress(${idx}, 10)">+10</button><button class="danger" onclick="deleteGoal(${idx})">Delete</button></div></div>`;grid.appendChild(card);});}
-function updateProgress(idx,delta){let newVal=goals[idx].current+delta;if(newVal<0)newVal=0;if(newVal>goals[idx].target)newVal=goals[idx].target;goals[idx].current=newVal;saveGoals();renderGoals();}
-function updateProgressFromSlider(idx,value){goals[idx].current=parseInt(value);saveGoals();renderGoals();}
-function updateProgressFromNumber(idx,value){let newVal=parseInt(value);if(isNaN(newVal))newVal=0;if(newVal<0)newVal=0;if(newVal>goals[idx].target)newVal=goals[idx].target;goals[idx].current=newVal;saveGoals();renderGoals();}
-function deleteGoal(idx){if(confirm('Delete this goal?')){goals.splice(idx,1);saveGoals();renderGoals();}}
-function openModal(){document.getElementById('goalModal').classList.add('active');document.getElementById('goalTitle').value='';document.getElementById('goalCategory').value='Career';document.getElementById('goalTarget').value='';}
-function closeModal(){document.getElementById('goalModal').classList.remove('active');}
-function saveGoal(){let title=document.getElementById('goalTitle').value.trim();let category=document.getElementById('goalCategory').value;let target=parseInt(document.getElementById('goalTarget').value);if(!title||isNaN(target)||target<=0){alert('Please fill all fields');return;}goals.push({id:Date.now(),title:title,category:category,target:target,current:0});saveGoals();renderGoals();closeModal();}
-function escapeHtml(t){let d=document.createElement('div');d.textContent=t;return d.innerHTML;}
-function toggleTheme(){let t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('slate_theme',t);}
-function loadTheme(){let s=localStorage.getItem('slate_theme');if(s)document.documentElement.setAttribute('data-theme',s);}
-loadTheme();loadUser();loadGoals();
-window.openModal=openModal;window.closeModal=closeModal;window.saveGoal=saveGoal;window.updateProgress=updateProgress;window.updateProgressFromSlider=updateProgressFromSlider;window.updateProgressFromNumber=updateProgressFromNumber;window.deleteGoal=deleteGoal;window.logout=logout;
+const firebaseConfig = {
+  apiKey: "AIzaSyBe-shv8pxkhnyiEGmpK9RG7MoO0NFYQfY",
+  authDomain: "slate-app-a66f9.firebaseapp.com",
+  projectId: "slate-app-a66f9",
+  storageBucket: "slate-app-a66f9.firebasestorage.app",
+  messagingSenderId: "683853322128",
+  appId: "1:683853322128:web:ba3c8e4d7ee2c4f1494515",
+  measurementId: "G-FZLN9YF0VW"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let currentUser = null;
+let goals = [];
+
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    if (!user.emailVerified) { await firebase.auth().signOut(); alert('Please verify your email.'); window.location.href = 'login.html'; return; }
+    currentUser = user;
+    document.getElementById('userNameDisplay').innerText = user.displayName?.split(' ')[0] || user.email.split('@')[0];
+    await loadGoals();
+});
+
+async function loadGoals() {
+    const snapshot = await db.collection('users').doc(currentUser.uid).collection('goals').get();
+    goals = [];
+    snapshot.forEach(doc => {
+        goals.push({ id: doc.id, ...doc.data() });
+    });
+    renderGoals();
+}
+
+async function saveGoals() {
+    for (let goal of goals) {
+        await db.collection('users').doc(currentUser.uid).collection('goals').doc(goal.id).set({
+            title: goal.title,
+            category: goal.category,
+            target: goal.target,
+            current: goal.current
+        });
+    }
+}
+
+async function addGoalToFirestore(goal) {
+    await db.collection('users').doc(currentUser.uid).collection('goals').doc(goal.id).set({
+        title: goal.title,
+        category: goal.category,
+        target: goal.target,
+        current: goal.current
+    });
+}
+
+async function deleteGoalFromFirestore(goalId) {
+    await db.collection('users').doc(currentUser.uid).collection('goals').doc(goalId).delete();
+}
+
+function renderGoals() {
+    let grid = document.getElementById('goalsGrid');
+    if (goals.length === 0) {
+        grid.innerHTML = '<div class="empty-state">🎯 No goals yet. Click "New Goal" to start!</div>';
+        return;
+    }
+    grid.innerHTML = '';
+    goals.forEach((goal, idx) => {
+        let progress = (goal.current / goal.target) * 100;
+        let card = document.createElement('div');
+        card.className = 'goal-card';
+        card.innerHTML = `
+            <div class="goal-title">${escapeHtml(goal.title)}</div>
+            <div class="goal-category">${goal.category}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+            <div class="progress-stats"><span>${goal.current} / ${goal.target}</span><span>${Math.round(progress)}%</span></div>
+            <div class="progress-controls">
+                <div class="slider-container"><input type="range" min="0" max="${goal.target}" value="${goal.current}" step="1" oninput="updateProgressFromSlider(${idx}, this.value)"></div>
+                <div class="number-input"><input type="number" id="progressInput_${idx}" value="${goal.current}" min="0" max="${goal.target}" step="1" onchange="updateProgressFromNumber(${idx}, this.value)"><span>/ ${goal.target}</span></div>
+                <div class="button-group"><button onclick="updateProgress(${idx}, -10)">-10</button><button onclick="updateProgress(${idx}, 10)">+10</button><button class="danger" onclick="deleteGoal(${idx})">Delete</button></div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+async function updateProgress(idx, delta) {
+    let newVal = goals[idx].current + delta;
+    if (newVal < 0) newVal = 0;
+    if (newVal > goals[idx].target) newVal = goals[idx].target;
+    goals[idx].current = newVal;
+    await addGoalToFirestore(goals[idx]);
+    renderGoals();
+}
+
+async function updateProgressFromSlider(idx, value) {
+    goals[idx].current = parseInt(value);
+    await addGoalToFirestore(goals[idx]);
+    renderGoals();
+}
+
+async function updateProgressFromNumber(idx, value) {
+    let newVal = parseInt(value);
+    if (isNaN(newVal)) newVal = 0;
+    if (newVal < 0) newVal = 0;
+    if (newVal > goals[idx].target) newVal = goals[idx].target;
+    goals[idx].current = newVal;
+    await addGoalToFirestore(goals[idx]);
+    renderGoals();
+}
+
+async function deleteGoal(idx) {
+    if (confirm('Delete this goal?')) {
+        await deleteGoalFromFirestore(goals[idx].id);
+        goals.splice(idx, 1);
+        renderGoals();
+    }
+}
+
+function openModal() {
+    document.getElementById('goalModal').classList.add('active');
+    document.getElementById('goalTitle').value = '';
+    document.getElementById('goalCategory').value = 'Career';
+    document.getElementById('goalTarget').value = '';
+}
+
+function closeModal() {
+    document.getElementById('goalModal').classList.remove('active');
+}
+
+async function saveGoal() {
+    let title = document.getElementById('goalTitle').value.trim();
+    let category = document.getElementById('goalCategory').value;
+    let target = parseInt(document.getElementById('goalTarget').value);
+    if (!title || isNaN(target) || target <= 0) {
+        alert('Please fill all fields');
+        return;
+    }
+    let newGoal = {
+        id: Date.now().toString(),
+        title: title,
+        category: category,
+        target: target,
+        current: 0
+    };
+    goals.push(newGoal);
+    await addGoalToFirestore(newGoal);
+    renderGoals();
+    closeModal();
+}
+
+function logout() {
+    firebase.auth().signOut();
+    window.location.href = 'login.html';
+}
+
+function escapeHtml(t) { let d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function toggleTheme() { let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', t); localStorage.setItem('slate_theme', t); document.getElementById('themeToggle').innerHTML = t === 'dark' ? '☀️ Light' : '🌙 Dark'; }
+function loadTheme() { let s = localStorage.getItem('slate_theme'); if (s) document.documentElement.setAttribute('data-theme', s); document.getElementById('themeToggle').innerHTML = (s === 'dark' ? '☀️ Light' : '🌙 Dark'); }
+loadTheme();
+
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.saveGoal = saveGoal;
+window.updateProgress = updateProgress;
+window.updateProgressFromSlider = updateProgressFromSlider;
+window.updateProgressFromNumber = updateProgressFromNumber;
+window.deleteGoal = deleteGoal;
+window.logout = logout;
+window.toggleTheme = toggleTheme;
 </script>
 </body>
 </html>
