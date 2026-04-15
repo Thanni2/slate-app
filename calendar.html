@@ -210,6 +210,7 @@ async function loadEvents() {
     snapshot.forEach(doc => {
         events.push({ id: doc.id, ...doc.data() });
     });
+    console.log("📋 Loaded events:", events.length);
     renderCalendar();
 }
 
@@ -234,38 +235,60 @@ async function deleteEvent(eventId) {
 
 function startReminderChecker() {
     if (reminderCheckInterval) clearInterval(reminderCheckInterval);
-    reminderCheckInterval = setInterval(checkReminders, 60000);
+    reminderCheckInterval = setInterval(checkReminders, 30000); // Check every 30 seconds for faster response
+    console.log("⏰ Reminder checker started - checking every 30 seconds");
 }
 
-// FIXED REMINDER CHECKER - Only sends within 2-minute window
+// FIXED REMINDER CHECKER WITH FULL DEBUG LOGGING
 async function checkReminders() {
     if (!currentUser) return;
     const now = new Date();
+    console.log("🔍 [CHECK] Running reminder check at:", now.toLocaleTimeString());
+    
+    let reminderCount = 0;
     
     for (let event of events) {
         if (event.reminder && !event.reminder.sent) {
+            reminderCount++;
             const eventTime = new Date(event.start);
             const reminderTime = new Date(eventTime.getTime() - (event.reminder.minutes * 60000));
-            
-            // Calculate time difference in milliseconds between now and reminder time
             const diffMs = now - reminderTime;
+            const diffMinutes = diffMs / 60000;
             
-            // Only send if:
-            // 1. Reminder time has passed (diffMs >= 0)
-            // 2. Within 2 minutes of reminder time (diffMs < 120000)
-            // 3. Event hasn't started yet (now < eventTime)
+            console.log(`📅 [EVENT] "${event.title}"`);
+            console.log(`   └─ Event time: ${eventTime.toLocaleTimeString()}`);
+            console.log(`   └─ Reminder time: ${reminderTime.toLocaleTimeString()} (${event.reminder.minutes} min before)`);
+            console.log(`   └─ Current time: ${now.toLocaleTimeString()}`);
+            console.log(`   └─ Time difference: ${diffMinutes.toFixed(2)} minutes since reminder`);
+            console.log(`   └─ Conditions:`);
+            console.log(`       - diffMs >= 0? ${diffMs >= 0}`);
+            console.log(`       - diffMs < 120000? ${diffMs < 120000}`);
+            console.log(`       - now < eventTime? ${now < eventTime}`);
+            console.log(`   └─ Should send? ${diffMs >= 0 && diffMs < 120000 && now < eventTime}`);
+            
             if (diffMs >= 0 && diffMs < 120000 && now < eventTime) {
-                console.log("Sending reminder for:", event.title);
-                await sendEmailReminder(event, currentUser.email, event.reminder.minutes);
-                event.reminder.sent = true;
-                await saveEventToFirestore(event);
+                console.log(`✅ [SEND] Sending reminder for: ${event.title}`);
+                const emailSent = await sendEmailReminder(event, currentUser.email, event.reminder.minutes);
+                if (emailSent) {
+                    event.reminder.sent = true;
+                    await saveEventToFirestore(event);
+                    console.log(`✅ [SEND] Reminder sent successfully for: ${event.title}`);
+                } else {
+                    console.log(`❌ [SEND] Failed to send reminder for: ${event.title}`);
+                }
+            } else {
+                console.log(`⏳ [WAIT] Not sending yet for: ${event.title}`);
             }
         }
+    }
+    
+    if (reminderCount === 0) {
+        console.log("📭 [CHECK] No pending reminders");
     }
 }
 
 async function sendEmailReminder(event, userEmail, reminderMinutes) {
-    console.log("Sending reminder email to:", userEmail);
+    console.log("📧 [EMAIL] Preparing to send to:", userEmail);
     
     const eventDate = new Date(event.start);
     let reminderText = "";
@@ -284,12 +307,14 @@ async function sendEmailReminder(event, userEmail, reminderMinutes) {
         reminder_time: reminderText
     };
     
+    console.log("📧 [EMAIL] Template params:", templateParams);
+    
     try {
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-        console.log('Reminder email sent successfully for:', event.title);
+        const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+        console.log("📧 [EMAIL] Success! Response:", response);
         return true;
     } catch (error) {
-        console.error('Failed to send reminder:', error);
+        console.error("📧 [EMAIL] Failed! Error:", error);
         return false;
     }
 }
@@ -546,6 +571,8 @@ async function saveEvent() {
     await saveEventToFirestore(eventData);
     closeEventModal();
     renderCalendar();
+    
+    console.log("💾 [SAVE] Event saved:", eventData);
 }
 
 document.getElementById('enableReminder').addEventListener('change', function() {
