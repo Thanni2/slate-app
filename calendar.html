@@ -237,6 +237,7 @@ function startReminderChecker() {
     reminderCheckInterval = setInterval(checkReminders, 60000);
 }
 
+// FIXED REMINDER CHECKER - Only sends within 2-minute window
 async function checkReminders() {
     if (!currentUser) return;
     const now = new Date();
@@ -246,7 +247,14 @@ async function checkReminders() {
             const eventTime = new Date(event.start);
             const reminderTime = new Date(eventTime.getTime() - (event.reminder.minutes * 60000));
             
-            if (now >= reminderTime && now < eventTime) {
+            // Calculate time difference in milliseconds between now and reminder time
+            const diffMs = now - reminderTime;
+            
+            // Only send if:
+            // 1. Reminder time has passed (diffMs >= 0)
+            // 2. Within 2 minutes of reminder time (diffMs < 120000)
+            // 3. Event hasn't started yet (now < eventTime)
+            if (diffMs >= 0 && diffMs < 120000 && now < eventTime) {
                 console.log("Sending reminder for:", event.title);
                 await sendEmailReminder(event, currentUser.email, event.reminder.minutes);
                 event.reminder.sent = true;
@@ -514,7 +522,7 @@ async function saveEvent() {
     if (document.getElementById('enableReminder').checked) {
         reminder = {
             minutes: parseInt(document.getElementById('reminderMinutes').value),
-            sent: false  // ← NOT SENT YET
+            sent: false
         };
     }
     
@@ -538,8 +546,6 @@ async function saveEvent() {
     await saveEventToFirestore(eventData);
     closeEventModal();
     renderCalendar();
-    
-    // NO EMAIL SENDING HERE - ONLY IN checkReminders()
 }
 
 document.getElementById('enableReminder').addEventListener('change', function() {
