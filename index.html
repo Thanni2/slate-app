@@ -44,6 +44,19 @@ footer{border-top:.5px solid var(--border);padding:2rem 3rem;display:flex;justif
 </head>
 <body>
 
+<!-- ONE-TIME FORCE UPDATE -->
+<script>
+const APP_VERSION = '3';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  if ('caches' in window) { caches.keys().then(keys => keys.forEach(key => caches.delete(key))); }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
+  }
+  localStorage.setItem('app_version', APP_VERSION);
+  setTimeout(() => location.reload(true), 100);
+}
+</script>
+
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
