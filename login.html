@@ -55,6 +55,19 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 </head>
 <body>
 
+<!-- ONE-TIME FORCE UPDATE -->
+<script>
+const APP_VERSION = '3';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  if ('caches' in window) { caches.keys().then(keys => keys.forEach(key => caches.delete(key))); }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
+  }
+  localStorage.setItem('app_version', APP_VERSION);
+  setTimeout(() => location.reload(true), 100);
+}
+</script>
+
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
@@ -216,6 +229,15 @@ window.login = login;
 window.showForgotModal = showForgotModal;
 window.closeForgotModal = closeForgotModal;
 window.sendResetEmail = sendResetEmail;
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/slate-app/sw.js')
+      .then(registration => console.log('Service Worker registered:', registration))
+      .catch(error => console.log('Service Worker registration failed:', error));
+  });
+}
 </script>
 </body>
 </html>
