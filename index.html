@@ -44,46 +44,6 @@ footer{border-top:.5px solid var(--border);padding:2rem 3rem;display:flex;justif
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
-<!-- ============================================ -->
-<script>
-const APP_VERSION = '3';
-if (localStorage.getItem('app_version') !== APP_VERSION) {
-  console.log('🔄 Running one-time cache cleanup...');
-  
-  // Clear all caches
-  if ('caches' in window) {
-    caches.keys().then(keys => {
-      keys.forEach(key => {
-        console.log('🗑️ Deleting cache:', key);
-        caches.delete(key);
-      });
-    });
-  }
-  
-  // Unregister all service workers
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      registrations.forEach(reg => {
-        console.log('🗑️ Unregistering service worker');
-        reg.unregister();
-      });
-    });
-  }
-  
-  // Set version flag
-  localStorage.setItem('app_version', APP_VERSION);
-  
-  // Force reload without cache
-  setTimeout(() => {
-    console.log('🔄 Reloading page with fresh code...');
-    location.reload(true);
-  }, 500);
-}
-</script>
-<!-- ============================================ -->
-
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
@@ -138,16 +98,11 @@ if (localStorage.getItem('app_version') !== APP_VERSION) {
 </footer>
 
 <script>
-// Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/slate-app/sw.js')
-      .then(registration => {
-        console.log('✅ Service Worker registered:', registration);
-      })
-      .catch(error => {
-        console.log('❌ Service Worker registration failed:', error);
-      });
+      .then(registration => console.log('Service Worker registered:', registration))
+      .catch(error => console.log('Service Worker registration failed:', error));
   });
 }
 </script>
