@@ -75,6 +75,47 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;just
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
+
+<!-- ============================================ -->
+<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
+<!-- ============================================ -->
+<script>
+const APP_VERSION = '3';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  console.log('🔄 Running one-time cache cleanup...');
+  
+  // Clear all caches
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => {
+        console.log('🗑️ Deleting cache:', key);
+        caches.delete(key);
+      });
+    });
+  }
+  
+  // Unregister all service workers
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => {
+        console.log('🗑️ Unregistering service worker');
+        reg.unregister();
+      });
+    });
+  }
+  
+  // Set version flag
+  localStorage.setItem('app_version', APP_VERSION);
+  
+  // Force reload without cache
+  setTimeout(() => {
+    console.log('🔄 Reloading page with fresh code...');
+    location.reload(true);
+  }, 500);
+}
+</script>
+<!-- ============================================ -->
+
 <nav>
 <a href="dashboard.html" class="logo">Sl<em>a</em>te</a>
 <div class="user-info">
@@ -243,7 +284,7 @@ async function deleteEventFromFirestore(eventId) {
 // ============================================
 function startReminderChecker() {
     if (reminderChecker) clearInterval(reminderChecker);
-    reminderChecker = setInterval(checkAndSendReminders, 30000); // Check every 30 seconds
+    reminderChecker = setInterval(checkAndSendReminders, 30000);
     console.log("✅ Reminder checker started");
 }
 
@@ -251,16 +292,12 @@ async function checkAndSendReminders() {
     if (!currentUser) return;
     
     const now = new Date();
-    let reminderSent = false;
     
     for (let event of events) {
-        // Skip if no reminder or already sent
         if (!event.reminder || event.reminder.sent) continue;
         
         const eventTime = new Date(event.start);
         const reminderTime = new Date(eventTime.getTime() - (event.reminder.minutes * 60000));
-        
-        // Check if we are within 2 minutes of the reminder time AND event hasn't started
         const timeDiffMs = now - reminderTime;
         const isInWindow = timeDiffMs >= 0 && timeDiffMs < 120000;
         const eventNotStarted = now < eventTime;
@@ -268,23 +305,15 @@ async function checkAndSendReminders() {
         if (isInWindow && eventNotStarted) {
             console.log(`🔔 Sending reminder for: ${event.title}`);
             await sendEmailReminder(event, currentUser.email);
-            
-            // Mark as sent
             event.reminder.sent = true;
             await saveEventToFirestore(event);
-            reminderSent = true;
         }
-    }
-    
-    if (!reminderSent) {
-        // Optional: silent, no log
     }
 }
 
 async function sendEmailReminder(event, userEmail) {
     const eventDate = new Date(event.start);
     
-    // Format reminder text
     let reminderText = "";
     const minutes = event.reminder.minutes;
     if (minutes === 5) reminderText = "5 minutes before";
@@ -322,12 +351,11 @@ async function saveEvent() {
         return;
     }
     
-    // Build reminder object if enabled
     let reminder = null;
     if (document.getElementById('enableReminder').checked) {
         reminder = {
             minutes: parseInt(document.getElementById('reminderMinutes').value),
-            sent: false  // ← IMPORTANT: Not sent yet
+            sent: false
         };
     }
     
@@ -341,7 +369,6 @@ async function saveEvent() {
         reminder: reminder
     };
     
-    // Update or add event
     if (editingEventId) {
         const index = events.findIndex(e => e.id === editingEventId);
         if (index !== -1) events[index] = eventData;
@@ -376,7 +403,6 @@ function renderCalendar() {
     else renderMonthView();
     updateDateDisplay();
     
-    // Update button styles
     document.getElementById('weekViewBtn').style.background = currentView === 'week' ? 'var(--accent)' : 'var(--surface)';
     document.getElementById('weekViewBtn').style.color = currentView === 'week' ? '#fff' : 'var(--text)';
     document.getElementById('monthViewBtn').style.background = currentView === 'month' ? 'var(--accent)' : 'var(--surface)';
