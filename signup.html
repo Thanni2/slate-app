@@ -56,6 +56,36 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+<!-- ============================================ -->
+<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
+<!-- ============================================ -->
+<script>
+const APP_VERSION = '3';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  console.log('🔄 Running one-time cache cleanup...');
+  
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key));
+    });
+  }
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => reg.unregister());
+    });
+  }
+  
+  localStorage.setItem('app_version', APP_VERSION);
+  
+  setTimeout(() => {
+    location.reload(true);
+  }, 500);
+}
+</script>
+<!-- ============================================ -->
+
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
@@ -78,7 +108,6 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 <button class="btn" id="signupBtn" onclick="signUp()">Create account →</button>
 
 <div class="divider"><span>or</span></div>
-<div class="divider"><span>or</span></div>
 
 <button class="btn-google" id="googleBtn" style="display:flex !important; visibility:visible !important; width:100%;">
 <svg width="20" height="20" viewBox="0 0 24 24">
@@ -90,25 +119,8 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 Continue with Google
 </button>
 
-<script>
-document.getElementById('googleBtn').addEventListener('click', function() {
-    console.log("Google button clicked");
-    const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider)
-        .then(result => {
-            localStorage.setItem('slate_user', JSON.stringify({
-                name: result.user.displayName,
-                email: result.user.email,
-                uid: result.user.uid
-            }));
-            window.location.href = 'dashboard.html';
-        })
-        .catch(error => {
-            console.error(error);
-            alert(error.message);
-        });
-});
-</script>
+<div id="errorMsg" class="error-msg"></div>
+<div id="successMsg" class="success-msg"></div>
 
 <div class="links"><a href="login.html">Already have an account? Sign in</a><span>•</span><a href="index.html">← Back to home</a></div>
 </div></div>
@@ -213,16 +225,11 @@ async function signUp() {
 }
 </script>
 <script>
-// Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/slate-app/sw.js')
-      .then(registration => {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch(error => {
-        console.log('Service Worker registration failed:', error);
-      });
+      .then(registration => console.log('Service Worker registered:', registration))
+      .catch(error => console.log('Service Worker registration failed:', error));
   });
 }
 </script>
