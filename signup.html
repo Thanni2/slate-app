@@ -25,7 +25,7 @@ input:focus{outline:none;border-color:var(--accent);}
 .btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
 .btn:hover{opacity:.88;}
 .btn-google{width:100%;padding:12px;background:var(--surface);color:var(--text);border:.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:1rem;display:flex;align-items:center;justify-content:center;gap:10px;}
-.btn-google:hover{background:var(--tag);}
+.btn-google:hover{background:#e8e6df;}
 .divider{text-align:center;margin:1.5rem 0;position:relative;}
 .divider::before{content:'';position:absolute;top:50%;left:0;width:45%;height:.5px;background:var(--border);}
 .divider::after{content:'';position:absolute;top:50%;right:0;width:45%;height:.5px;background:var(--border);}
@@ -38,18 +38,10 @@ input:focus{outline:none;border-color:var(--accent);}
 footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center;margin-top:auto;}
 .footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.5rem;}
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
-
-/* Mobile fixes */
 @media (max-width: 768px) {
-    .btn-google {
-        display: flex !important;
-    }
-    .divider {
-        display: block !important;
-    }
-    .card {
-        padding: 1.5rem !important;
-    }
+    .btn-google { display: flex !important; }
+    .divider { display: block !important; }
+    .card { padding: 1.5rem !important; }
 }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -57,34 +49,18 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
-<!-- ============================================ -->
+<!-- ONE-TIME FORCE UPDATE -->
 <script>
 const APP_VERSION = '3';
 if (localStorage.getItem('app_version') !== APP_VERSION) {
-  console.log('🔄 Running one-time cache cleanup...');
-  
-  if ('caches' in window) {
-    caches.keys().then(keys => {
-      keys.forEach(key => caches.delete(key));
-    });
-  }
-  
+  if ('caches' in window) { caches.keys().then(keys => keys.forEach(key => caches.delete(key))); }
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      registrations.forEach(reg => reg.unregister());
-    });
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
   }
-  
   localStorage.setItem('app_version', APP_VERSION);
-  
-  setTimeout(() => {
-    location.reload(true);
-  }, 500);
+  setTimeout(() => location.reload(true), 100);
 }
 </script>
-<!-- ============================================ -->
 
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
@@ -141,24 +117,18 @@ firebase.initializeApp(firebaseConfig);
 
 // Google Sign Up
 document.getElementById('googleBtn').addEventListener('click', async function() {
-    console.log("Google button clicked");
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    
     try {
         const result = await firebase.auth().signInWithPopup(provider);
         const user = result.user;
-        console.log("Google sign in success:", user.email);
-        
         localStorage.setItem('slate_user', JSON.stringify({
             name: user.displayName,
             email: user.email,
             uid: user.uid
         }));
-        
         window.location.href = 'dashboard.html';
     } catch (error) {
-        console.error("Google sign in error:", error);
         document.getElementById('errorMsg').innerText = error.message;
         document.getElementById('errorMsg').style.display = 'block';
     }
@@ -169,12 +139,10 @@ async function signUp() {
     const name = document.getElementById('fullname').value.trim();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    
     const errorEl = document.getElementById('errorMsg');
     const successEl = document.getElementById('successMsg');
     errorEl.style.display = 'none';
     successEl.style.display = 'none';
-    
     if (!name || !email || !password) {
         errorEl.innerText = 'Please fill in all fields';
         errorEl.style.display = 'block';
@@ -185,37 +153,23 @@ async function signUp() {
         errorEl.style.display = 'block';
         return;
     }
-    
     const btn = document.getElementById('signupBtn');
     btn.innerText = 'Creating account...';
     btn.classList.add('loading');
-    
     try {
         const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
-        
         await user.updateProfile({ displayName: name });
         await user.sendEmailVerification();
-        
         successEl.innerText = 'Account created! Please check your email to verify your account. Redirecting to login...';
         successEl.style.display = 'block';
-        
         await firebase.auth().signOut();
-        
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 3000);
-        
+        setTimeout(() => { window.location.href = 'login.html'; }, 3000);
     } catch (error) {
-        console.error('Signup error:', error);
         let message = error.message;
-        if (message.includes('email-already-in-use')) {
-            message = 'Email already registered. Please sign in instead.';
-        } else if (message.includes('invalid-email')) {
-            message = 'Please enter a valid email address.';
-        } else if (message.includes('weak-password')) {
-            message = 'Password is too weak. Use at least 6 characters.';
-        }
+        if (message.includes('email-already-in-use')) message = 'Email already registered. Please sign in instead.';
+        else if (message.includes('invalid-email')) message = 'Please enter a valid email address.';
+        else if (message.includes('weak-password')) message = 'Password is too weak. Use at least 6 characters.';
         errorEl.innerText = message;
         errorEl.style.display = 'block';
     } finally {
