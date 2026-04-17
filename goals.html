@@ -58,6 +58,47 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;just
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+<!-- ============================================ -->
+<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
+<!-- ============================================ -->
+<script>
+const APP_VERSION = '3';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  console.log('🔄 Running one-time cache cleanup...');
+  
+  // Clear all caches
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => {
+        console.log('🗑️ Deleting cache:', key);
+        caches.delete(key);
+      });
+    });
+  }
+  
+  // Unregister all service workers
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => {
+        console.log('🗑️ Unregistering service worker');
+        reg.unregister();
+      });
+    });
+  }
+  
+  // Set version flag
+  localStorage.setItem('app_version', APP_VERSION);
+  
+  // Force reload without cache
+  setTimeout(() => {
+    console.log('🔄 Reloading page with fresh code...');
+    location.reload(true);
+  }, 500);
+}
+</script>
+<!-- ============================================ -->
+
 <nav>
 <a href="dashboard.html" class="logo">Sl<em>a</em>te</a>
 <div class="user-info">
@@ -253,7 +294,7 @@ window.deleteGoal = deleteGoal;
 window.logout = logout;
 window.toggleTheme = toggleTheme;
 </script>
-  <script>
+<script>
 // Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
