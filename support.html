@@ -49,6 +49,36 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;display:flex;just
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+<!-- ============================================ -->
+<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
+<!-- ============================================ -->
+<script>
+const APP_VERSION = '3';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  console.log('🔄 Running one-time cache cleanup...');
+  
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key));
+    });
+  }
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => reg.unregister());
+    });
+  }
+  
+  localStorage.setItem('app_version', APP_VERSION);
+  
+  setTimeout(() => {
+    location.reload(true);
+  }, 500);
+}
+</script>
+<!-- ============================================ -->
+
 <nav>
 <a href="dashboard.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
@@ -94,7 +124,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// Check if user is logged in
 firebase.auth().onAuthStateChanged((user) => {
     if (!user) {
         window.location.href = 'login.html';
@@ -140,17 +169,12 @@ loadTheme();
 window.logout = logout;
 window.toggleTheme = toggleTheme;
 </script>
-    <script>
-// Register Service Worker
+<script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/slate-app/sw.js')
-      .then(registration => {
-        console.log('Service Worker registered:', registration);
-      })
-      .catch(error => {
-        console.log('Service Worker registration failed:', error);
-      });
+      .then(registration => console.log('Service Worker registered:', registration))
+      .catch(error => console.log('Service Worker registration failed:', error));
   });
 }
 </script>
