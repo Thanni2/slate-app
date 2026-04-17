@@ -6,7 +6,6 @@
 <title>Goals — Slate</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
-/* Your existing goals CSS - keep as is */
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--bg:#f7f6f3;--surface:#fff;--border:rgba(0,0,0,.08);--text:#1a1a18;--muted:#9a9890;--accent:#2563eb;--tag:#f0ede6;--danger:#ef4444;}
 [data-theme="dark"]{--bg:#1a1a1a;--surface:#2d2d2d;--border:rgba(255,255,255,.1);--text:#e5e5e5;--muted:#9ca3af;--accent:#3b82f6;--tag:#3a3a3a;}
@@ -101,10 +100,121 @@ if (localStorage.getItem('app_version') !== APP_VERSION) {
 </footer>
 
 <script>
-// Your existing goals JavaScript (the working one)
-// Include Firebase config, loadGoals, saveGoal, etc.
-</script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBe-shv8pxkhnyiEGmpK9RG7MoO0NFYQfY",
+  authDomain: "slate-app-a66f9.firebaseapp.com",
+  projectId: "slate-app-a66f9",
+  storageBucket: "slate-app-a66f9.firebasestorage.app",
+  messagingSenderId: "683853322128",
+  appId: "1:683853322128:web:ba3c8e4d7ee2c4f1494515",
+  measurementId: "G-FZLN9YF0VW"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
+let currentUser = null;
+let goals = [];
+
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    if (!user.emailVerified) { await firebase.auth().signOut(); alert('Please verify your email.'); window.location.href = 'login.html'; return; }
+    currentUser = user;
+    document.getElementById('userNameDisplay').innerText = user.displayName?.split(' ')[0] || user.email.split('@')[0];
+    await loadGoals();
+});
+
+async function loadGoals() {
+    const snapshot = await db.collection('users').doc(currentUser.uid).collection('goals').get();
+    goals = [];
+    snapshot.forEach(doc => { goals.push({ id: doc.id, ...doc.data() }); });
+    renderGoals();
+}
+async function addGoalToFirestore(goal) {
+    await db.collection('users').doc(currentUser.uid).collection('goals').doc(goal.id).set({
+        title: goal.title, category: goal.category, target: goal.target, current: goal.current
+    });
+}
+async function deleteGoalFromFirestore(goalId) {
+    await db.collection('users').doc(currentUser.uid).collection('goals').doc(goalId).delete();
+}
+function renderGoals() {
+    let grid = document.getElementById('goalsGrid');
+    if(goals.length===0) { grid.innerHTML = '<div class="empty-state">🎯 No goals yet. Click "New Goal" to start!</div>'; return; }
+    grid.innerHTML = '';
+    goals.forEach((goal, idx) => {
+        let progress = (goal.current / goal.target) * 100;
+        let card = document.createElement('div');
+        card.className = 'goal-card';
+        card.innerHTML = `
+            <div class="goal-title">${escapeHtml(goal.title)}</div>
+            <div class="goal-category">${goal.category}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+            <div class="progress-stats"><span>${goal.current} / ${goal.target}</span><span>${Math.round(progress)}%</span></div>
+            <div class="progress-controls">
+                <div class="slider-container"><input type="range" min="0" max="${goal.target}" value="${goal.current}" step="1" oninput="updateProgressFromSlider(${idx}, this.value)"></div>
+                <div class="number-input"><input type="number" id="progressInput_${idx}" value="${goal.current}" min="0" max="${goal.target}" step="1" onchange="updateProgressFromNumber(${idx}, this.value)"><span>/ ${goal.target}</span></div>
+                <div class="button-group"><button onclick="updateProgress(${idx}, -10)">-10</button><button onclick="updateProgress(${idx}, 10)">+10</button><button class="danger" onclick="deleteGoal(${idx})">Delete</button></div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+async function updateProgress(idx, delta) {
+    let newVal = goals[idx].current + delta;
+    if(newVal<0) newVal=0; if(newVal>goals[idx].target) newVal=goals[idx].target;
+    goals[idx].current = newVal;
+    await addGoalToFirestore(goals[idx]);
+    renderGoals();
+}
+async function updateProgressFromSlider(idx, value) {
+    goals[idx].current = parseInt(value);
+    await addGoalToFirestore(goals[idx]);
+    renderGoals();
+}
+async function updateProgressFromNumber(idx, value) {
+    let newVal = parseInt(value);
+    if(isNaN(newVal)) newVal=0;
+    if(newVal<0) newVal=0; if(newVal>goals[idx].target) newVal=goals[idx].target;
+    goals[idx].current = newVal;
+    await addGoalToFirestore(goals[idx]);
+    renderGoals();
+}
+async function deleteGoal(idx) {
+    if(confirm('Delete this goal?')) {
+        await deleteGoalFromFirestore(goals[idx].id);
+        goals.splice(idx,1);
+        renderGoals();
+    }
+}
+function openModal() {
+    document.getElementById('goalModal').classList.add('active');
+    document.getElementById('goalTitle').value = '';
+    document.getElementById('goalCategory').value = 'Career';
+    document.getElementById('goalTarget').value = '';
+}
+function closeModal() { document.getElementById('goalModal').classList.remove('active'); }
+async function saveGoal() {
+    let title = document.getElementById('goalTitle').value.trim();
+    let category = document.getElementById('goalCategory').value;
+    let target = parseInt(document.getElementById('goalTarget').value);
+    if(!title || isNaN(target) || target<=0) { alert('Please fill all fields'); return; }
+    let newGoal = { id: Date.now().toString(), title: title, category: category, target: target, current: 0 };
+    goals.push(newGoal);
+    await addGoalToFirestore(newGoal);
+    renderGoals();
+    closeModal();
+}
+function logout() { firebase.auth().signOut(); window.location.href='login.html'; }
+function escapeHtml(t) { let d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function toggleTheme() { let t = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); localStorage.setItem('slate_theme',t); document.getElementById('themeToggle').innerHTML = t==='dark'?'☀️ Light':'🌙 Dark'; }
+function loadTheme() { let s = localStorage.getItem('slate_theme'); if(s) document.documentElement.setAttribute('data-theme',s); document.getElementById('themeToggle').innerHTML = (s==='dark'?'☀️ Light':'🌙 Dark'); }
+loadTheme();
+
+window.openModal = openModal; window.closeModal = closeModal; window.saveGoal = saveGoal;
+window.updateProgress = updateProgress; window.updateProgressFromSlider = updateProgressFromSlider;
+window.updateProgressFromNumber = updateProgressFromNumber; window.deleteGoal = deleteGoal;
+window.logout = logout; window.toggleTheme = toggleTheme;
+</script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
