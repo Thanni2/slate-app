@@ -55,45 +55,23 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 </head>
 <body>
 
-<!-- ============================================ -->
-<!-- ONE-TIME FORCE UPDATE - Remove this after 1 week -->
-<!-- ============================================ -->
+<!-- ONE-TIME FORCE UPDATE - Remove after 1 week -->
 <script>
 const APP_VERSION = '3';
 if (localStorage.getItem('app_version') !== APP_VERSION) {
   console.log('🔄 Running one-time cache cleanup...');
-  
-  // Clear all caches
   if ('caches' in window) {
-    caches.keys().then(keys => {
-      keys.forEach(key => {
-        console.log('🗑️ Deleting cache:', key);
-        caches.delete(key);
-      });
-    });
+    caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
   }
-  
-  // Unregister all service workers
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(registrations => {
-      registrations.forEach(reg => {
-        console.log('🗑️ Unregistering service worker');
-        reg.unregister();
-      });
+      registrations.forEach(reg => reg.unregister());
     });
   }
-  
-  // Set version flag
   localStorage.setItem('app_version', APP_VERSION);
-  
-  // Force reload without cache
-  setTimeout(() => {
-    console.log('🔄 Reloading page with fresh code...');
-    location.reload(true);
-  }, 500);
+  setTimeout(() => { location.reload(true); }, 500);
 }
 </script>
-<!-- ============================================ -->
 
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
@@ -110,10 +88,10 @@ if (localStorage.getItem('app_version') !== APP_VERSION) {
 <h1>Welcome back</h1>
 <p class="subtitle">Sign in to continue your journey</p>
 
-<div id="stepLogin">
 <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="hello@example.com"></div>
 <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
 <div class="forgot-link"><a onclick="showForgotModal()">Forgot password?</a></div>
+
 <button class="btn" id="loginBtn" onclick="login()">Sign in →</button>
 
 <div class="divider"><span>or</span></div>
@@ -129,7 +107,6 @@ Continue with Google
 </button>
 
 <div id="loginError" class="error-msg"></div>
-</div>
 
 <div class="links"><a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a></div>
 </div></div>
@@ -268,7 +245,6 @@ async function sendResetEmail() {
     }
 }
 
-// Theme
 function toggleTheme() {
     let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', t);
@@ -280,7 +256,6 @@ function loadTheme() {
 }
 loadTheme();
 
-window.googleSignIn = googleSignIn;
 window.login = login;
 window.showForgotModal = showForgotModal;
 window.closeForgotModal = closeForgotModal;
@@ -295,218 +270,6 @@ if ('serviceWorker' in navigator) {
       .catch(error => console.log('Service Worker registration failed:', error));
   });
 }
-</script>
-</body>
-</html>.links a{color:var(--muted);text-decoration:none;font-size:13px;}
-.links a:hover{color:var(--accent);}
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
-.modal-overlay.active{display:flex;}
-.modal{background:var(--surface);border-radius:24px;padding:2rem;max-width:450px;width:90%;}
-.modal h3{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:.5rem;}
-.modal p{font-size:13px;color:var(--muted);margin-bottom:1.5rem;}
-.modal input{width:100%;padding:12px;margin-bottom:1rem;}
-.modal-buttons{display:flex;gap:1rem;}
-.modal-buttons button{flex:1;padding:12px;border-radius:12px;cursor:pointer;}
-.modal-cancel{background:var(--surface);border:.5px solid var(--border);}
-.modal-submit{background:var(--accent);color:#fff;border:none;}
-footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center;margin-top:auto;}
-.footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.5rem;}
-.footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
-</style>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-</head>
-<body>
-<nav>
-<a href="index.html" class="logo">Sl<em>a</em>te</a>
-<div class="nav-links">
-<a href="index.html#features">Features</a>
-<a href="index.html#pricing">Pricing</a>
-<a href="support.html">Support</a>
-<a href="signup.html">Sign up</a>
-</div>
-</nav>
-
-<div class="container">
-<div class="card">
-<h1>Welcome back</h1>
-<p class="subtitle">Sign in to continue your journey</p>
-
-<div id="stepLogin">
-<div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="hello@example.com"></div>
-<div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
-<div class="forgot-link"><a onclick="showForgotModal()">Forgot password?</a></div>
-<button class="btn" id="loginBtn" onclick="login()">Sign in →</button>
-
-<div class="divider"><span>or</span></div>
-
-<button class="btn-google" onclick="googleSignIn()">
-<svg width="20" height="20" viewBox="0 0 24 24">
-<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-</svg>
-Continue with Google
-</button>
-
-<div id="loginError" class="error-msg"></div>
-</div>
-
-<div class="links"><a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a></div>
-</div></div>
-
-<div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetEmail()">Send link</button></div></div></div>
-
-<footer><div class="footer-links"><a href="index.html">Home</a><a href="signup.html">Sign up</a><a href="support.html">Support</a></div><div class="footer-copy">© 2026 Slate. All rights reserved.</div></footer>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBe-shv8pxkhnyiEGmpK9RG7MoO0NFYQfY",
-  authDomain: "slate-app-a66f9.firebaseapp.com",
-  projectId: "slate-app-a66f9",
-  storageBucket: "slate-app-a66f9.firebasestorage.app",
-  messagingSenderId: "683853322128",
-  appId: "1:683853322128:web:ba3c8e4d7ee2c4f1494515",
-  measurementId: "G-FZLN9YF0VW"
-};
-firebase.initializeApp(firebaseConfig);
-
-// Google Sign In
-async function googleSignIn() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    
-    try {
-        const result = await firebase.auth().signInWithPopup(provider);
-        const user = result.user;
-        
-        // Store user info
-        localStorage.setItem('slate_user', JSON.stringify({
-            name: user.displayName,
-            email: user.email,
-            uid: user.uid
-        }));
-        
-        window.location.href = 'dashboard.html';
-    } catch (error) {
-        console.error('Google sign in error:', error);
-        document.getElementById('loginError').innerText = error.message;
-        document.getElementById('loginError').style.display = 'block';
-    }
-}
-
-// Email/Password Login
-async function login() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const errorEl = document.getElementById('loginError');
-    errorEl.style.display = 'none';
-    
-    if (!email || !password) {
-        errorEl.innerText = 'Please enter both email and password';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    const btn = document.getElementById('loginBtn');
-    btn.innerText = 'Signing in...';
-    btn.classList.add('loading');
-    
-    try {
-        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-        
-        if (!user.emailVerified) {
-            await firebase.auth().signOut();
-            errorEl.innerText = 'Please verify your email before signing in. Check your inbox.';
-            errorEl.style.display = 'block';
-            return;
-        }
-        
-        localStorage.setItem('slate_user', JSON.stringify({
-            name: user.displayName || email.split('@')[0],
-            email: user.email,
-            uid: user.uid
-        }));
-        
-        window.location.href = 'dashboard.html';
-    } catch (error) {
-        let message = error.message;
-        if (message.includes('user-not-found') || message.includes('wrong-password')) {
-            message = 'Invalid email or password';
-        } else if (message.includes('too-many-requests')) {
-            message = 'Too many failed attempts. Try again later.';
-        }
-        errorEl.innerText = message;
-        errorEl.style.display = 'block';
-    } finally {
-        btn.innerText = 'Sign in →';
-        btn.classList.remove('loading');
-    }
-}
-
-// Forgot Password
-function showForgotModal() {
-    document.getElementById('forgotModal').classList.add('active');
-    document.getElementById('resetEmail').value = '';
-    document.getElementById('resetError').style.display = 'none';
-}
-
-function closeForgotModal() {
-    document.getElementById('forgotModal').classList.remove('active');
-}
-
-async function sendResetEmail() {
-    const email = document.getElementById('resetEmail').value.trim();
-    const errorEl = document.getElementById('resetError');
-    errorEl.style.display = 'none';
-    
-    if (!email) {
-        errorEl.innerText = 'Please enter your email';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    const btn = event.target;
-    btn.innerText = 'Sending...';
-    btn.disabled = true;
-    
-    try {
-        await firebase.auth().sendPasswordResetEmail(email);
-        alert('Password reset email sent! Check your inbox.');
-        closeForgotModal();
-    } catch (error) {
-        let message = error.message;
-        if (message.includes('user-not-found')) {
-            message = 'No account found with this email';
-        }
-        errorEl.innerText = message;
-        errorEl.style.display = 'block';
-    } finally {
-        btn.innerText = 'Send link';
-        btn.disabled = false;
-    }
-}
-
-// Theme
-function toggleTheme() {
-    let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', t);
-    localStorage.setItem('slate_theme', t);
-}
-function loadTheme() {
-    let s = localStorage.getItem('slate_theme');
-    if (s) document.documentElement.setAttribute('data-theme', s);
-}
-loadTheme();
-
-window.googleSignIn = googleSignIn;
-window.login = login;
-window.showForgotModal = showForgotModal;
-window.closeForgotModal = closeForgotModal;
-window.sendResetEmail = sendResetEmail;
-window.toggleTheme = toggleTheme;
 </script>
 </body>
 </html>
