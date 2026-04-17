@@ -4,6 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign In — Slate</title>
+<!-- FORCE REFRESH - Remove this script after 1 week -->
+<script>
+// This forces a complete reload of login.html
+if (sessionStorage.getItem('login_loaded') !== 'v2') {
+    sessionStorage.setItem('login_loaded', 'v2');
+    // Clear any cached version
+    if ('caches' in window) {
+        caches.keys().then(keys => {
+            keys.forEach(key => caches.delete(key));
+        });
+    }
+    // Force reload without cache
+    location.reload(true);
+}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -25,7 +40,7 @@ input:focus{outline:none;border-color:var(--accent);}
 .btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;}
 .btn:hover{opacity:.88;}
 .btn-google{width:100%;padding:12px;background:var(--surface);color:var(--text);border:.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:1rem;display:flex;align-items:center;justify-content:center;gap:10px;}
-.btn-google:hover{background:var(--tag);}
+.btn-google:hover{background:#e8e6df;}
 .forgot-link{text-align:right;margin-top:-8px;margin-bottom:12px;}
 .forgot-link a{font-size:12px;color:var(--muted);text-decoration:none;cursor:pointer;}
 .error-msg{color:#ef4444;font-size:12px;text-align:center;margin-top:1rem;display:none;}
@@ -54,24 +69,6 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-
-<!-- ONE-TIME FORCE UPDATE - Remove after 1 week -->
-<script>
-const APP_VERSION = '3';
-if (localStorage.getItem('app_version') !== APP_VERSION) {
-  console.log('🔄 Running one-time cache cleanup...');
-  if ('caches' in window) {
-    caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
-  }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      registrations.forEach(reg => reg.unregister());
-    });
-  }
-  localStorage.setItem('app_version', APP_VERSION);
-  setTimeout(() => { location.reload(true); }, 500);
-}
-</script>
 
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
