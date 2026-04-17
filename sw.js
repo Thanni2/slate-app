@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slate-v2';  // ← Change this number for each update
+const CACHE_NAME = 'slate-v3';
 
 const urlsToCache = [
   '/slate-app/',
