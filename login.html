@@ -54,20 +54,6 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-
-<!-- ONE-TIME FORCE UPDATE -->
-<script>
-const APP_VERSION = '3';
-if (localStorage.getItem('app_version') !== APP_VERSION) {
-  if ('caches' in window) { caches.keys().then(keys => keys.forEach(key => caches.delete(key))); }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
-  }
-  localStorage.setItem('app_version', APP_VERSION);
-  setTimeout(() => location.reload(true), 100);
-}
-</script>
-
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
@@ -103,7 +89,7 @@ Continue with Google
 
 <div id="loginError" class="error-msg"></div>
 
-<div class="links"><a href="signup.html">Create account</a><span> • </span><a href="index.html">← Back to home</a></div>
+<div class="links"><a href="signup.html">Create account</a><span>•</span><a href="index.html">← Back to home</a></div>
 </div></div>
 
 <div id="forgotModal" class="modal-overlay"><div class="modal"><h3>Reset password</h3><p>Enter your email to receive a reset link.</p><input type="email" id="resetEmail" placeholder="Your email"><div id="resetError" class="error-msg"></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeForgotModal()">Cancel</button><button class="modal-submit" onclick="sendResetEmail()">Send link</button></div></div></div>
@@ -128,11 +114,10 @@ document.getElementById('googleBtn').addEventListener('click', async function() 
     provider.setCustomParameters({ prompt: 'select_account' });
     try {
         const result = await firebase.auth().signInWithPopup(provider);
-        const user = result.user;
         localStorage.setItem('slate_user', JSON.stringify({
-            name: user.displayName,
-            email: user.email,
-            uid: user.uid
+            name: result.user.displayName,
+            email: result.user.email,
+            uid: result.user.uid
         }));
         window.location.href = 'dashboard.html';
     } catch (error) {
@@ -147,27 +132,33 @@ async function login() {
     const password = document.getElementById('loginPassword').value;
     const errorEl = document.getElementById('loginError');
     errorEl.style.display = 'none';
+    
     if (!email || !password) {
         errorEl.innerText = 'Please enter both email and password';
         errorEl.style.display = 'block';
         return;
     }
+    
     const btn = document.getElementById('loginBtn');
     btn.innerText = 'Signing in...';
+    
     try {
         const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
         const user = userCredential.user;
+        
         if (!user.emailVerified) {
             await firebase.auth().signOut();
-            errorEl.innerText = 'Please verify your email before signing in. Check your inbox.';
+            errorEl.innerText = 'Please verify your email before signing in.';
             errorEl.style.display = 'block';
             return;
         }
+        
         localStorage.setItem('slate_user', JSON.stringify({
             name: user.displayName || email.split('@')[0],
             email: user.email,
             uid: user.uid
         }));
+        
         window.location.href = 'dashboard.html';
     } catch (error) {
         let message = error.message;
@@ -189,28 +180,35 @@ function showForgotModal() {
     document.getElementById('resetEmail').value = '';
     document.getElementById('resetError').style.display = 'none';
 }
+
 function closeForgotModal() {
     document.getElementById('forgotModal').classList.remove('active');
 }
+
 async function sendResetEmail() {
     const email = document.getElementById('resetEmail').value.trim();
     const errorEl = document.getElementById('resetError');
     errorEl.style.display = 'none';
+    
     if (!email) {
         errorEl.innerText = 'Please enter your email';
         errorEl.style.display = 'block';
         return;
     }
+    
     const btn = event.target;
     btn.innerText = 'Sending...';
     btn.disabled = true;
+    
     try {
         await firebase.auth().sendPasswordResetEmail(email);
         alert('Password reset email sent! Check your inbox.');
         closeForgotModal();
     } catch (error) {
         let message = error.message;
-        if (message.includes('user-not-found')) message = 'No account found with this email';
+        if (message.includes('user-not-found')) {
+            message = 'No account found with this email';
+        }
         errorEl.innerText = message;
         errorEl.style.display = 'block';
     } finally {
@@ -219,6 +217,11 @@ async function sendResetEmail() {
     }
 }
 
+function toggleTheme() {
+    let t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('slate_theme', t);
+}
 function loadTheme() {
     let s = localStorage.getItem('slate_theme');
     if (s) document.documentElement.setAttribute('data-theme', s);
@@ -229,15 +232,6 @@ window.login = login;
 window.showForgotModal = showForgotModal;
 window.closeForgotModal = closeForgotModal;
 window.sendResetEmail = sendResetEmail;
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/slate-app/sw.js')
-      .then(registration => console.log('Service Worker registered:', registration))
-      .catch(error => console.log('Service Worker registration failed:', error));
-  });
-}
 </script>
 </body>
 </html>
