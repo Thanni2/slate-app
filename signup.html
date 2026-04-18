@@ -40,7 +40,6 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 .footer-links a{text-decoration:none;font-size:12px;color:var(--muted);}
 @media (max-width: 768px) {
     .btn-google { display: flex !important; }
-    .divider { display: block !important; }
     .card { padding: 1.5rem !important; }
 }
 </style>
@@ -48,20 +47,6 @@ footer{border-top:.5px solid var(--border);padding:1.5rem 2rem;text-align:center
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-
-<!-- ONE-TIME FORCE UPDATE -->
-<script>
-const APP_VERSION = '3';
-if (localStorage.getItem('app_version') !== APP_VERSION) {
-  if ('caches' in window) { caches.keys().then(keys => keys.forEach(key => caches.delete(key))); }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister()));
-  }
-  localStorage.setItem('app_version', APP_VERSION);
-  setTimeout(() => location.reload(true), 100);
-}
-</script>
-
 <nav>
 <a href="index.html" class="logo">Sl<em>a</em>te</a>
 <div class="nav-links">
@@ -85,7 +70,7 @@ if (localStorage.getItem('app_version') !== APP_VERSION) {
 
 <div class="divider"><span>or</span></div>
 
-<button class="btn-google" id="googleBtn" style="display:flex !important; visibility:visible !important; width:100%;">
+<button class="btn-google" id="googleBtn">
 <svg width="20" height="20" viewBox="0 0 24 24">
 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -121,11 +106,10 @@ document.getElementById('googleBtn').addEventListener('click', async function() 
     provider.setCustomParameters({ prompt: 'select_account' });
     try {
         const result = await firebase.auth().signInWithPopup(provider);
-        const user = result.user;
         localStorage.setItem('slate_user', JSON.stringify({
-            name: user.displayName,
-            email: user.email,
-            uid: user.uid
+            name: result.user.displayName,
+            email: result.user.email,
+            uid: result.user.uid
         }));
         window.location.href = 'dashboard.html';
     } catch (error) {
@@ -139,10 +123,12 @@ async function signUp() {
     const name = document.getElementById('fullname').value.trim();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    
     const errorEl = document.getElementById('errorMsg');
     const successEl = document.getElementById('successMsg');
     errorEl.style.display = 'none';
     successEl.style.display = 'none';
+    
     if (!name || !email || !password) {
         errorEl.innerText = 'Please fill in all fields';
         errorEl.style.display = 'block';
@@ -153,38 +139,42 @@ async function signUp() {
         errorEl.style.display = 'block';
         return;
     }
+    
     const btn = document.getElementById('signupBtn');
     btn.innerText = 'Creating account...';
     btn.classList.add('loading');
+    
     try {
         const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
         const user = userCredential.user;
+        
         await user.updateProfile({ displayName: name });
         await user.sendEmailVerification();
+        
         successEl.innerText = 'Account created! Please check your email to verify your account. Redirecting to login...';
         successEl.style.display = 'block';
+        
         await firebase.auth().signOut();
-        setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+        
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 3000);
+        
     } catch (error) {
         let message = error.message;
-        if (message.includes('email-already-in-use')) message = 'Email already registered. Please sign in instead.';
-        else if (message.includes('invalid-email')) message = 'Please enter a valid email address.';
-        else if (message.includes('weak-password')) message = 'Password is too weak. Use at least 6 characters.';
+        if (message.includes('email-already-in-use')) {
+            message = 'Email already registered. Please sign in instead.';
+        } else if (message.includes('invalid-email')) {
+            message = 'Please enter a valid email address.';
+        } else if (message.includes('weak-password')) {
+            message = 'Password is too weak. Use at least 6 characters.';
+        }
         errorEl.innerText = message;
         errorEl.style.display = 'block';
     } finally {
         btn.innerText = 'Create account →';
         btn.classList.remove('loading');
     }
-}
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/slate-app/sw.js')
-      .then(registration => console.log('Service Worker registered:', registration))
-      .catch(error => console.log('Service Worker registration failed:', error));
-  });
 }
 </script>
 </body>
